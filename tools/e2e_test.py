@@ -353,12 +353,12 @@ with sync_playwright() as p:
     const W3=Wt+1800;CallersPanel.tickMarks(W3+896);o.late=F(W3);o.latem=M(W3);
     return o})()""")
   print('callers beats',tm['table'],tm['a'],tm['b'],tm['c'],tm['d'],tm['e'])
-  chk('six callers, sixteen unique beats (no collisions); Flippy has ONE beat at 14:15 (855 s) in a slot nobody else uses',tm['uniq']==16 and tm['all']==sorted(tm['all']) and tm['table']=={'dash':[60,360,660],'zippy':[120,420,720],'mellow':[180,480,780],'ripple':[240,540,840],'sage':[300,600,870],'flippy':[855]},str(tm['table']))
+  chk('seven callers, seventeen unique beats (no collisions); Flippy has ONE beat at 14:15 (855 s) and The Chief ONE at 7:30 (450 s), each in a slot nobody else uses',tm['uniq']==17 and tm['all']==sorted(tm['all']) and tm['table']=={'dash':[60,360,660],'zippy':[120,420,720],'mellow':[180,480,780],'ripple':[240,540,840],'sage':[300,600,870],'flippy':[855],'chief':[450]},str(tm['table']))
   chk('Sage’s last call is at 14:30 (870 s, minute 15 is settlement) and every beat plus its grace ends before the window closes',tm['sage'][2]==870 and tm['g870']==25 and tm['fit'],str((tm['sage'],tm['g870'])))
-  chk('nothing fires one second early; each beat fires inside its grace; only the caller whose beat it is calls',tm['a'] in ('','---|---|---|---|---|-') and tm['b']=='0--|---|---|---|---|-' and tm['c']=='0--|0--|---|---|---|-',str((tm['a'],tm['b'],tm['c'])))
-  chk('a late page records the beats it missed as missed (never back-filled) and still fires the ones in range',tm['d']=='01-|0--|---|---|---|-' and tm['dm']=={'mellow':'0','ripple':'0','sage':'0'} and tm['e']=='01-|0--|---|--2|--2|0',str((tm['d'],tm['dm'],tm['e'])))
-  chk('opening the page mid-window: earlier beats missed, Mellow’s minute-8 beat still fires inside its grace',tm['l']=='---|---|-1-|---|---|-' and tm['lm']=={'dash':'01','zippy':'01','mellow':'0','ripple':'0','sage':'0'},str((tm['l'],tm['lm'])))
-  chk('Sage’s 14:30 call (and Flippy’s 14:15 look) are missed, not forced, once their short grace is over',('2' in tm['latem'].get('sage','')) and tm['late'].endswith('---|-') and tm['latem'].get('flippy')=='0',str((tm['late'],tm['latem'])))
+  chk('nothing fires one second early; each beat fires inside its grace; only the caller whose beat it is calls',tm['a'] in ('','---|---|---|---|---|-|-') and tm['b']=='0--|---|---|---|---|-|-' and tm['c']=='0--|0--|---|---|---|-|-',str((tm['a'],tm['b'],tm['c'])))
+  chk('a late page records the beats it missed as missed (never back-filled) and still fires the ones in range',tm['d']=='01-|0--|---|---|---|-|-' and tm['dm']=={'mellow':'0','ripple':'0','sage':'0'} and tm['e']=='01-|0--|---|--2|--2|0|-',str((tm['d'],tm['dm'],tm['e'])))
+  chk('opening the page mid-window: earlier beats missed, Mellow’s minute-8 beat still fires inside its grace',tm['l']=='---|---|-1-|---|---|-|-' and tm['lm']=={'dash':'01','zippy':'01','mellow':'0','ripple':'0','sage':'0','chief':'0'},str((tm['l'],tm['lm'])))
+  chk('Sage’s 14:30 call (and Flippy’s 14:15 look) are missed, not forced, once their short grace is over',('2' in tm['latem'].get('sage','')) and tm['late'].endswith('---|-|-') and tm['latem'].get('flippy')=='0',str((tm['late'],tm['latem'])))
   # 2) equal capability
   eq=px.evaluate("""(()=>{__reset();const P=CallersPanel.PROFILES,ids=CallersPanel.REG,sum=i=>Object.values(P[i].w).reduce((a,b)=>a+b,0),o={};
     o.sums=ids.map(i=>+sum(i).toFixed(9));o.keys=ids.map(i=>Object.keys(P[i].w).join());o.groups=PulseIndicators.GROUPS.join();
@@ -467,7 +467,7 @@ with sync_playwright() as p:
     t=sc['tot'][i];okb=okb and t['a']['n']==sum(1 for d in dirs if d) and t['a']['w']==sum(1 for d in dirs if d=='UP') and all(t['b'][j]['n']==(1 if dirs[j] else 0) and t['b'][j]['w']==(1 if dirs[j]=='UP' else 0) for j in range(len(dirs))) and t['g1']['n']+t['g2']['n']==t['a']['n']
   chk('callers are scored on Kalshi settlement overall and by beat (1st/2nd/3rd), skips excluded, and backing counts add up',okb and all(sc['backs']),str(sc['tot']['zippy']))
   chk('re-settling the same round does not double count; per-reading hit rates are kept; the Archive logged the round once',sc['n1']==1 and sc['n2']==0 and sc['same'] and sc['sig']>3 and sc['arch']==1,str((sc['n1'],sc['n2'],sc['arch'])))
-  chk('storage isolation: callers write only pulseboard2.callers.v2 and the Archive’s own key, never remove a key, and only READ callers.v1',sc['keys']==['pulseboard2.archive.v1','pulseboard2.callers.v2'] and sc['rm']==[] and sc['v1same'],str((sc['keys'],sc['rm'])))
+  chk('storage isolation: callers write only pulseboard2.callers.v2 and the Archive’s own key, never remove a key, and only READ callers.v1',sc['keys']==['pulseboard2.archive.v1','pulseboard2.badges.v1','pulseboard2.callers.v2'] and sc['rm']==[] and sc['v1same'],str((sc['keys'],sc['rm'])))
   chk('existing data untouched: pulseboard2.v2 / obook / flows / sig / learn / cleared flag / callers.v1 byte-identical, Grokky tally identical',sc['untouched'] and sc['tally'] and sc['v1same'])
   # 10) Grokky Archive isolation
   src=lambda f:open(os.path.join(os.path.dirname(os.path.abspath(__file__)),'..',f)).read()
@@ -483,14 +483,14 @@ with sync_playwright() as p:
     o.callersHaveNoArchiveField=!/archive/i.test(A[0]);
     // archive keeps its own forever-log
     localStorage.removeItem('pulseboard2.archive.v1');GrokkyArchive._reload();localStorage.removeItem('pulseboard2.callers.v2');CallersPanel._resetCache();run();const st=GrokkyArchive._state();const r=st.rounds[W];
-    o.logged=Object.keys(r.c).length==6&&Object.entries(r.c).every(([k,a])=>a.length==CallersPanel.BEATS[k].length);o.settled=r.s===1&&r.r===0;o.agg=GrokkyArchive.summary();o.bench=r.b.filter(x=>x!=null).length;
+    o.logged=Object.keys(r.c).length==7&&Object.entries(r.c).every(([k,a])=>a.length==CallersPanel.BEATS[k].length);o.settled=r.s===1&&r.r===0;o.agg=GrokkyArchive.summary();o.bench=r.b.filter(x=>x!=null).length;
     // size bound: prune oldest beyond the cap, keep totals + note
     GrokkyArchive._setMax(6000);for(let k=0;k<200;k++){const w=W-(k+1)*900;GrokkyArchive.logCall(w,'zippy',120,'UP',60,'ok');GrokkyArchive.settle(w,'yes')}
     const before=Object.keys(GrokkyArchive._state().rounds).length;GrokkyArchive._save();const after=Object.keys(GrokkyArchive._state().rounds).length;const sm=GrokkyArchive.summary();
     o.prune={before:before,after:after,pruned:sm.pruned,rounds:sm.rounds,note:sm.note,bytes:sm.bytes,wins:sm.callers.zippy.w};GrokkyArchive._setMax(900000);return o})()""")
   print('archive',{k:ar[k] for k in ('same','logged','settled','bench','prune')})
   chk('archive isolation (behaviour): corrupt or hugely “winning” Archive data changes NOTHING in live call records, scores or memory — they are byte-identical to a run without it',all(ar['same']) and ar['callersHaveNoArchiveField'],str(ar['same']))
-  chk('archive logs every call and sit-out of every caller (16 beats per round), the settlement, and its own benchmark calls (min 4/8/12), under its own key',ar['logged'] and ar['settled'] and ar['bench']==3 and ar['agg']['rounds']>=1,str(ar['agg'])[:150])
+  chk('archive logs every call and sit-out of every caller (17 beats per round), the settlement, and its own benchmark calls (min 4/8/12), under its own key',ar['logged'] and ar['settled'] and ar['bench']==3 and ar['agg']['rounds']>=1,str(ar['agg'])[:150])
   chk('archive is size-bounded: oldest round rows are pruned with a note, all-time totals keep every round',ar['prune']['after']<201 and ar['prune']['pruned']>0 and 'dropped' in ar['prune']['note'] and ar['prune']['rounds']>=201 and ar['prune']['wins']>=200,str(ar['prune']))
   # 11) Flippy: the late-flip gambler
   fl=px.evaluate("""(()=>{__reset();const s=CallersPanel._store(),o={},base=Math.floor(Date.now()/900000)*900;const D=PulseIndicators.feed();
@@ -569,7 +569,7 @@ with sync_playwright() as p:
   zt=px.locator('#caller-zippy').text_content()
   chk('caller card speaks in first person, names its minute, confidence and who it backs, and quotes the real distance to strike','I’m calling' in zt and 'confidence' in zt and 'backing Grokky' in zt and ('$%d'%round(abs(ui['d'])) in zt.replace(',','')) and 'At the' not in zt,zt[:220])
   chk('callers cards: no third-person narration',not re.search(r'\b(Dash|Zippy|Mellow|Ripple|Sage|Flippy) (is|was|thinks|says|picked|called)\b|\bthey\b',px.locator('#callersBody').text_content()))
-  chk('six caller cards, three beat chips each (Flippy one), 16 beat dots on the timeline, with Sage’s last beat labelled 14:30 and Flippy’s 14:15',px.locator('#callersBody .cc').count()==6 and all(px.locator('#caller-%s .mchip'%i).count()==3 for i in ['dash','zippy','mellow','ripple','sage']) and px.locator('#caller-flippy .mchip').count()==1 and '14:15' in px.locator('#caller-flippy .mchips').text_content() and px.locator('#callersTl .bdot').count()==16 and '14:30' in px.locator('#caller-sage .mchips').text_content() and '11' in px.locator('#caller-dash .mchips').text_content(),px.locator('#caller-sage .mchips').text_content())
+  chk('seven caller cards, three beat chips each (Flippy and The Chief one), 17 beat dots on the timeline, with Sage’s last beat labelled 14:30 and Flippy’s 14:15',px.locator('#callersBody .cc').count()==7 and px.locator('#caller-chief .mchip').count()==1 and all(px.locator('#caller-%s .mchip'%i).count()==3 for i in ['dash','zippy','mellow','ripple','sage']) and px.locator('#caller-flippy .mchip').count()==1 and '14:15' in px.locator('#caller-flippy .mchips').text_content() and px.locator('#callersTl .bdot').count()==17 and '14:30' in px.locator('#caller-sage .mchips').text_content() and '11' in px.locator('#caller-dash .mchips').text_content(),px.locator('#caller-sage .mchips').text_content())
   chk('a skipped call shows as ⏸ "skipped: too fast" with the reason, and is not shown as a win/loss',px.locator('#caller-ripple .mchip.skip').count()==1 and 'skipped: too fast' in px.locator('#caller-ripple').text_content() and px.locator('#caller-ripple .mchip.skip i').count()==0)
   chk('confidence bar and short-memory row are on each card',px.locator('#caller-zippy .cmeter').count()>=1 and 'Confidence' in zt and px.locator('#caller-zippy .memrow').count()==1 and 'My last 5 settled calls' in zt)
   px.locator('#caller-mellow [data-xp="cwmellow"] .xpb').click();px.locator('#caller-mellow [data-xp="camellow"] .xpb').click();px.wait_for_timeout(700)
@@ -583,7 +583,7 @@ with sync_playwright() as p:
   p2=px.evaluate("CallersPanel._store().phase.cur&&CallersPanel._store().phase.cur.id");pr=px.evaluate("CallersPanel._store().phase.cur.reason")
   chk('manual "new phase" asks first: cancel changes nothing, OK starts a new phase (stats reset, totals stay)',p1==p0 and p2==(p0 or 0)+1 and 'by hand' in pr,str((p0,p1,p2,pr)))
   chk('crowd strip says how many callers so far agree and what history says for similar conditions',re.search(r'\d of \d callers so far say',px.locator('#crowdBar').text_content()) is not None and ('similar conditions' in px.locator('#crowdBar').text_content()),px.locator('#crowdBar').text_content()[:160])
-  chk('scoreboard: six callers (this phase / all time / beats / skipped or sat out) plus Grokky 1 and 2 for comparison',px.locator('#callersScore tbody tr').count()==8 and all(x in px.locator('#callersScore').text_content() for x in ['This phase','All time','1st beat','3rd beat','Skipped / sat out']))
+  chk('scoreboard: six callers (this phase / all time / beats / skipped or sat out) plus Grokky 1 and 2 for comparison',px.locator('#callersScore tbody tr').count()==9 and all(x in px.locator('#callersScore').text_content() for x in ['This phase','All time','1st beat','3rd beat','Skipped / sat out']))
   px.locator('#callersMarks .xpb').click();px.wait_for_timeout(500)
   chk('mark tallies table is available (standing at minute 4 / 8 / 12)','Standing at the 4, 8 and 12-minute marks' in px.locator('#callersMarks').text_content() and ('At minute 4' in px.locator('#callersMarks').text_content() or 'No tally' in px.locator('#callersMarks').text_content()))
   at_=px.locator('#callersArch').text_content()
@@ -591,9 +591,9 @@ with sync_playwright() as p:
   px.locator('#callersArch .xpb').nth(1).click();px.wait_for_timeout(500)
   chk('archived v1 numbers are still readable (Zippy 6/10)','6/10' in px.locator('#callersArch').text_content())
   px.locator('#cbBody [data-xp="cbgrid"] .xpb').click();px.wait_for_timeout(700)
-  chk('check & balance: agreement meter + reading-by-reading grid with Grokky 1, Grokky 2 and all six callers',px.locator('#cbBody .cbtab thead th').count()==11 and px.locator('#cbBody .cbtab tbody tr').count()>=10 and 'of us say' in px.locator('#cbBody').text_content(),px.locator('#cbBody').text_content()[:120])
+  chk('check & balance: agreement meter + reading-by-reading grid with Grokky 1, Grokky 2 and all six callers',px.locator('#cbBody .cbtab thead th').count()==12 and px.locator('#cbBody .cbtab tbody tr').count()>=10 and 'of us say' in px.locator('#cbBody').text_content(),px.locator('#cbBody').text_content()[:120])
   sn2=px.evaluate("AskPanel.snapshot()");sj=json.dumps(sn2)
-  chk('Ask AI snapshot carries the five callers, phase, crowd, gate and archive, and stays under its cap',('callers' in sn2) and len(sn2['callers']['callers'])==6 and sn2['callers']['phase'] and 'crowd' in sn2['callers'] and 'archive' in sn2['callers'] and len(sj)<4500,str(len(sj)))
+  chk('Ask AI snapshot carries the five callers, phase, crowd, gate and archive, and stays under its cap',('callers' in sn2) and len(sn2['callers']['callers'])==7 and sn2['callers']['phase'] and 'crowd' in sn2['callers'] and 'archive' in sn2['callers'] and len(sj)<4500,str(len(sj)))
   ba=px.evaluate("AskPanel.builtin('What are the callers saying?')");chk('Flippy’s card shows his own scoreboard (flip calls, hit rate, right to sit out) and either a flip call or “no flip seen”',all(x in px.locator('#caller-flippy').text_content() for x in ['flip calls made','flip hit rate','right to sit out']) and ('No flip seen' in px.locator('#caller-flippy').text_content() or 'I smell a flip' in px.locator('#caller-flippy').text_content()))
   chk('built-in answer covers the callers',all(x in ba for x in ['Dash','Zippy','Mellow','Ripple','Sage','Flippy']),ba[:100])
   px.evaluate("document.querySelectorAll('.xp').forEach(x=>x.classList.add('open'))");px.wait_for_timeout(600)

@@ -4,7 +4,7 @@
      • Binance BTCUSDT 1-minute klines     (data-api.binance.vision)     → CVD (taker-buy minus taker-sell volume), Coinbase-vs-Binance premium
    plus the Kalshi strike / UP price and the board's own picks, which are passed in. Nothing is invented: a reading that can't be computed says so ("na" + why).
    Each reading is {k,name,group,vote,desc}: vote runs −1 (DOWN) … +1 (UP) and "desc" quotes the live numbers it used.
-   Groups: momentum (mom, mom15, accel, drift) · volume (vsurge, cvd, tshare) · chart (ema, vwap, rsi, sr, candle) · revert (stretch, over) · flow (prem, book) · strike (strike, crowd) · grokky (gkread, gkconf) · info (vol, implied; vote 0). */
+   Groups: momentum (mom, mom15, accel, drift) · volume (vsurge, cvd, tshare) · chart (ema, vwap, rsi, sr, candle) · revert (stretch, over) · flow (prem, book, fund, oi) · strike (strike, crowd) · grokky (gkread, gkconf) · info (vol, implied; vote 0). */
 (function(){
 'use strict';
 function num(x){var v=parseFloat(x);return isFinite(v)?v:NaN}
@@ -34,7 +34,7 @@ function compute(inp){
   function add(k,name,group,vote,desc,extra){S.push({k:k,name:name,group:group,vote:isFinite(vote)?clamp(vote,-1,1):0,desc:desc,na:false,val:extra&&extra.val,unit:extra&&extra.unit})}
   function na(k,name,group,why){S.push({k:k,name:name,group:group,vote:0,desc:why,na:true})}
   if(base.length<25){out.why='Not enough 1-minute candles yet ('+base.length+' closed; I need about 25).';
-    ['strike','ema','mom','vwap','drift','rsi','stretch','cvd','prem','mom15','accel','vsurge','tshare','sr','candle','over'].forEach(function(k){na(k,k,'info',out.why)});return out}
+    ['strike','ema','mom','vwap','drift','rsi','stretch','cvd','prem','mom15','accel','vsurge','tshare','sr','candle','over','fund','oi'].forEach(function(k){na(k,k,'info',out.why)});return out}
   var last=base[base.length-1],cl=base.map(function(k){return k.c}),px=cl[cl.length-1];
   var live=(inp.cb||[]).concat([]).sort(function(x,y){return x.t-y.t}).filter(function(k){return k.t<=now}).slice(-1)[0];
   if(live&&live.t+60>now&&baseSrc==='Coinbase')px=live.c;  // the forming minute's latest trade price, so "now" really is now
@@ -114,6 +114,14 @@ function compute(inp){
   else na('prem','Coinbase vs Binance premium','flow','Need both exchanges\' candles for the same minutes.');
   if(inp.ctx&&isFinite(inp.ctx.book)&&Math.abs(inp.ctx.book)>=0.02)add('book','Kalshi order book','flow',clamp(inp.ctx.book*2,-1,1),'Kalshi order book has '+Math.round(Math.abs(inp.ctx.book)*100)+'% more resting size on the '+(inp.ctx.book>0?'UP':'DOWN')+' side',{val:inp.ctx.book,unit:'frac'});
   else na('book','Kalshi order book','flow',inp.ctx&&isFinite(inp.ctx.book)?'Order book is balanced (under 2% lean).':'Kalshi order book not loaded.');
+  // ---- futures (funding rate + open interest, free public data; may be unavailable) ----
+  var fu=inp.fut;
+  if(fu&&isFinite(fu.fund)){var fv=-Math.tanh(fu.fund/0.00025)*0.5,fp=fu.fund*100;
+    add('fund','Futures funding rate','flow',Math.abs(fp)<0.002?0:fv,'Perpetual-futures funding is '+(fp>=0?'+':'−')+Math.abs(fp).toFixed(4)+'% per 8 hours: '+(Math.abs(fp)<0.002?'balanced, so no lean':fp>0?'longs pay shorts (crowded long), a mild lean DOWN':'shorts pay longs (crowded short), a mild lean UP'),{val:fu.fund,unit:'frac'})}
+  else na('fund','Futures funding rate','flow',fu&&fu.err?'Futures data unavailable ('+fu.err+').':'Futures data not loaded.');
+  if(fu&&isFinite(fu.oiChg)&&isFinite(fu.pxChg)){var ov=Math.abs(fu.oiChg)<0.001?0:Math.tanh(fu.oiChg/0.004)*(fu.pxChg>=0?1:-1)*0.7;
+    add('oi','Futures open interest','flow',ov,'Open interest '+(fu.oiChg>=0?'rose':'fell')+' '+Math.abs(fu.oiChg*100).toFixed(2)+'% over '+Math.round(fu.span/60)+' min while price '+(fu.pxChg>=0?'rose':'fell')+(Math.abs(fu.oiChg)<0.001?': flat, no lean':fu.oiChg>0?': new money is backing the move ('+(fu.pxChg>=0?'UP':'DOWN')+')':': the move is running out of fuel (weak '+(fu.pxChg>=0?'UP':'DOWN')+')'),{val:fu.oiChg,unit:'frac'})}
+  else na('oi','Futures open interest','flow',fu&&isFinite(fu.oiUsd)?'Open interest is '+(fu.oiUsd/1e9).toFixed(2)+'B USD; I need about 5 minutes of watching to see which way it is moving.':fu&&fu.err?'Futures data unavailable ('+fu.err+').':'Futures data not loaded.');
   // ---- grokky read: what the two of them are saying ----
   var g=inp.g;
   if(g&&g.items&&g.items.length){var up=0,dn=0;g.items.forEach(function(o){if(o.dir==='UP')up++;else if(o.dir==='DOWN')dn++});var tt=up+dn;
@@ -151,6 +159,7 @@ function groupLean(signals){var o={};GROUPS.forEach(function(g){var v=signals.fi
 
 /* ---------- live feed (Coinbase 1m + Binance 1m klines) ---------- */
 var D={cb:[],bn:[],cbAt:0,bnAt:0,cbErr:'',bnErr:'',timer:null,busy:false};
+var F={fund:NaN,oiUsd:NaN,oi:[],src:'',err:'',at:0,busy:false,timer:null};
 function J(u,ms){var c=new AbortController(),to=setTimeout(function(){c.abort()},ms||10000);return fetch(u,{signal:c.signal,cache:'no-store'}).then(function(r){clearTimeout(to);if(!r.ok)throw new Error('HTTP '+r.status);return r.json()},function(e){clearTimeout(to);throw e})}
 function why(e){var m=(e&&e.name==='AbortError')?'timeout':((e&&e.message)||'error');return m==='Failed to fetch'?'blocked/network':m}
 function pollOnce(){
@@ -159,7 +168,29 @@ function pollOnce(){
   var b=J('https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=120').then(function(d){D.bn=d.map(function(k){return {t:Math.floor(k[0]/1000),o:+k[1],h:+k[2],l:+k[3],c:+k[4],v:+k[5],tb:+k[9]}}).filter(function(k){return isFinite(k.o+k.c)});D.bnAt=Math.floor(Date.now()/1000);D.bnErr=''},function(e){D.bnErr=why(e)});
   return Promise.all([a,b]).then(function(){D.busy=false;window.dispatchEvent(new Event('pulse-indicators'))},function(){D.busy=false});
 }
-function start(){if(D.timer)return;pollOnce();D.timer=setInterval(pollOnce,20000)}
+
+/* ---------- futures: funding rate + open interest (free public endpoints, no keys; the first one that answers wins) ---------- */
+function futOnce(){
+  if(F.busy)return Promise.resolve();F.busy=true;var px=D.cb.length?D.cb[D.cb.length-1].c:NaN;
+  function done(src,fund,oiUsd){F.src=src;F.fund=fund;F.oiUsd=oiUsd;F.err='';F.at=Math.floor(Date.now()/1000);if(isFinite(oiUsd)){F.oi.push({t:F.at,oi:oiUsd,px:px});while(F.oi.length&&F.at-F.oi[0].t>1500)F.oi.shift()}}
+  var tries=[
+    function(){return Promise.all([J('https://www.okx.com/api/v5/public/funding-rate?instId=BTC-USDT-SWAP',8000),J('https://www.okx.com/api/v5/public/open-interest?instType=SWAP&instId=BTC-USDT-SWAP',8000)]).then(function(r){var f=r[0].data&&r[0].data[0],o=r[1].data&&r[1].data[0];if(!f||!o)throw new Error('empty');done('OKX',num(f.fundingRate),num(o.oiUsd))})},
+    function(){return J('https://api.bybit.com/v5/market/tickers?category=linear&symbol=BTCUSDT',8000).then(function(r){var t=r.result&&r.result.list&&r.result.list[0];if(!t)throw new Error('empty');done('Bybit',num(t.fundingRate),num(t.openInterestValue))})},
+    function(){return Promise.all([J('https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT',8000),J('https://fapi.binance.com/fapi/v1/openInterest?symbol=BTCUSDT',8000)]).then(function(r){done('Binance',num(r[0].lastFundingRate),num(r[1].openInterest)*num(r[0].markPrice))})}];
+  var i=0,last='';
+  function next(){if(i>=tries.length){F.err=last==='Failed to fetch'?'blocked or offline':(last||'error');F.busy=false;return Promise.resolve()}
+    return tries[i++]().then(function(){F.busy=false},function(e){last=(e&&e.message)||'error';return next()})}
+  return next().then(function(){window.dispatchEvent(new Event('pulse-indicators'))});
+}
+/* what the readings need: funding, and how open interest moved over the last 5–15 minutes next to price (needs ~5 minutes of watching) */
+function futView(){
+  if(!isFinite(F.fund)&&!F.err)return null;if(!isFinite(F.fund))return {err:F.err||'not loaded'};
+  var o={fund:F.fund,oiUsd:F.oiUsd,src:F.src,oiChg:NaN,pxChg:NaN,span:0},a=F.oi[0],b=F.oi[F.oi.length-1];
+  if(a&&b&&b.t-a.t>=300&&a.oi>0){o.oiChg=b.oi/a.oi-1;o.pxChg=isFinite(a.px)&&isFinite(b.px)?b.px-a.px:NaN;o.span=b.t-a.t}
+  return o;
+}
+function futMark(){return F}
+function start(){if(D.timer)return;pollOnce();D.timer=setInterval(pollOnce,20000);if(!F.timer){F.timer=setInterval(futOnce,60000);setTimeout(futOnce,2500)}}
 function feed(){return D}
-window.PulseIndicators={GATE:GATE,compute:compute,groupLean:groupLean,GROUPS:GROUPS,start:start,pollOnce:pollOnce,feed:feed,_phi:phi,_phiInv:phiInv,_rsi:rsi,_ema:ema};
+window.PulseIndicators={GATE:GATE,compute:compute,groupLean:groupLean,GROUPS:GROUPS,start:start,pollOnce:pollOnce,feed:feed,futView:futView,futMark:futMark,futOnce:futOnce,_phi:phi,_phiInv:phiInv,_rsi:rsi,_ema:ema};
 })();
