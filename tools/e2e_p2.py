@@ -44,7 +44,7 @@ with sync_playwright() as p:
   px.goto(url);ready(px);px.wait_for_timeout(1500);px.evaluate(SYN);px.evaluate(HELP)
   # ===== The Chief =====
   t=px.evaluate("""(()=>{__reset();const B=CallersPanel.BEATS,all=[].concat(...CallersPanel.IDS.map(i=>B[i]));return {chief:B.chief,uniq:new Set(all).size,n:all.length,ids:CallersPanel.IDS,chiefSlot:all.filter(x=>x===450).length,P:CallersPanel.PROFILES.chief.name}})()""")
-  chk('The Chief has ONE beat at 7:30 (450 s), a slot nobody else uses; 17 unique beats',t['chief']==[450] and t['chiefSlot']==1 and t['uniq']==17 and t['n']==17 and t['ids'][-1]=='chief' and t['P']=='The Chief',str(t))
+  chk('The Chief has ONE beat at 7:30 (450 s), a slot nobody else uses; 17 beats, 15 distinct times (Zippy shares 4:00 and 8:00)',t['chief']==[450] and t['chiefSlot']==1 and t['uniq']==15 and t['n']==17 and t['ids'][-1]=='chief' and t['P']=='The Chief',str(t))
   c1=px.evaluate("""(()=>{__reset();const W=__W(1);const r=__play(W,{dash:['UP',80],zippy:['UP',70],mellow:['DOWN',40],ripple:['UP',60],sage:['DOWN',50]},null);const c=r.calls.chief[0];
     return {dir:c.dir,conf:c.conf,nc:c.nc,score:c.score,vt:c.vt.map(x=>[x.id,x.dir,x.conf,x.tr,x.w]),cp:c.cp,why:c.why,gate:c.gate.lvl,backs:c.backs,bub:CallersPanel._bubble('chief',c),crowd:c.crowd}})()""")
   chk('Chief reads the five callers’ latest calls and weighs each by confidence × trust',len(c1['vt'])==5 and all(abs(x[4]-x[2]/100*x[3])<0.002 for x in c1['vt']),str(c1['vt']))
@@ -256,6 +256,17 @@ with sync_playwright() as p:
   px.locator('#callersExtra').screenshot(path=out+f'{tag}-callers-extra.png')
   chk('sample window: Overachiever holds the crown and the Chief card is rendered',px.locator('#callersBody .cc .crown').count()==1 and px.locator('#caller-chief').count()==1 and 'Chief' in px.locator('#caller-chief').text_content())
   # mobile
+  # ===== Zippy's beats moved 2/7/12 → 4/8/12 =====
+  zb=px.evaluate("""(()=>{__reset();const B=CallersPanel.BEATS,W=__W(6);
+    const r=__play(W,{dash:['UP',80],zippy:['UP',70],mellow:['DOWN',40],ripple:['UP',60],sage:['DOWN',50]},null);const z0=r.calls.zippy[0],ch=r.calls.chief[0];
+    const inp=__syn(W+483,W,70040);CallersPanel.fire(W,'zippy',1,W+483,inp);const z1=CallersPanel._store().rounds[W].calls.zippy[1];
+    const old=CallersPanel._store().rounds[W];const lc=(CallersPanel.summary().callers.find(c=>c.n==='Zippy')||{}).beats;
+    return {z:B.zippy,others:{dash:B.dash,mellow:B.mellow,ripple:B.ripple,sage:B.sage,flippy:B.flippy,chief:B.chief},sec0:z0.secs,at0:z0.at-W,at1:z1&&z1.at-W,vz:(ch.vt.find(x=>x.id==='zippy')||{}),zdir:z0.dir,zconf:z0.conf,lc:lc,chips:[...document.querySelectorAll('#caller-zippy .mchip')].map(e=>e.textContent.replace(/\s+/g,' ').trim().slice(0,12))}})()""")
+  chk('Zippy’s beats are now 4:00, 8:00, 12:00 (240/480/720 s); every other caller’s beats are unchanged',zb['z']==[240,480,720] and zb['others']=={'dash':[60,360,660],'mellow':[180,480,780],'ripple':[240,540,840],'sage':[300,600,870],'flippy':[855],'chief':[450]},str(zb))
+  chk('Zippy’s summary line (Ask AI) lists the new beats 4/8/12',zb['lc']=='4/8/12',str(zb['lc']))
+  chk('the Chief at 7:30 uses Zippy’s 4:00 call as his latest (his 8:00 call has not happened yet)',zb['vz'].get('dir')==zb['zdir'] and zb['vz'].get('conf')==zb['zconf'] and zb['at0']==243,str(zb))
+  px.wait_for_timeout(300);px.locator('#callersBody').scroll_into_view_if_needed()
+  chk('Zippy’s card shows his chips for the new minutes (4, 8, 12) and keeps ⭐ Your pick',px.evaluate("(()=>{const t=document.querySelector('#caller-zippy').innerText;return /Your pick/.test(t)&&/\\b4\\b/.test(t)&&/\\b8\\b/.test(t)&&/\\b12\\b/.test(t)})()"),px.evaluate("document.querySelector('#caller-zippy').innerText.slice(0,200)"))
   m=b.new_context(viewport={'width':390,'height':844},device_scale_factor=2,is_mobile=True,has_touch=True);mp=m.new_page();me=[]
   mp.on('pageerror',lambda e:me.append(str(e)[:200]));mp.on('console',lambda x:me.append(x.text[:160]) if x.type=='error' and 'Failed to load resource' not in x.text and 'CORS' not in x.text and 'Access to fetch' not in x.text else None)
   mp.goto(url);ready(mp);mp.wait_for_timeout(1500);mp.evaluate(SYN);mp.evaluate(HELP)

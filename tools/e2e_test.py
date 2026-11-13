@@ -353,11 +353,11 @@ with sync_playwright() as p:
     const W3=Wt+1800;CallersPanel.tickMarks(W3+896);o.late=F(W3);o.latem=M(W3);
     return o})()""")
   print('callers beats',tm['table'],tm['a'],tm['b'],tm['c'],tm['d'],tm['e'])
-  chk('seven callers, seventeen unique beats (no collisions); Flippy has ONE beat at 14:15 (855 s) and The Chief ONE at 7:30 (450 s), each in a slot nobody else uses',tm['uniq']==17 and tm['all']==sorted(tm['all']) and tm['table']=={'dash':[60,360,660],'zippy':[120,420,720],'mellow':[180,480,780],'ripple':[240,540,840],'sage':[300,600,870],'flippy':[855],'chief':[450]},str(tm['table']))
+  chk('seven callers, seventeen beats (Zippy deliberately shares 4:00 with Ripple and 8:00 with Mellow, so 15 distinct times); Flippy has ONE beat at 14:15 (855 s) and The Chief ONE at 7:30 (450 s), each in a slot nobody else uses',tm['uniq']==15 and tm['all']==sorted(tm['all']) and tm['table']=={'dash':[60,360,660],'zippy':[240,480,720],'mellow':[180,480,780],'ripple':[240,540,840],'sage':[300,600,870],'flippy':[855],'chief':[450]},str(tm['table']))
   chk('Sage’s last call is at 14:30 (870 s, minute 15 is settlement) and every beat plus its grace ends before the window closes',tm['sage'][2]==870 and tm['g870']==25 and tm['fit'],str((tm['sage'],tm['g870'])))
-  chk('nothing fires one second early; each beat fires inside its grace; only the caller whose beat it is calls',tm['a'] in ('','---|---|---|---|---|-|-') and tm['b']=='0--|---|---|---|---|-|-' and tm['c']=='0--|0--|---|---|---|-|-',str((tm['a'],tm['b'],tm['c'])))
-  chk('a late page records the beats it missed as missed (never back-filled) and still fires the ones in range',tm['d']=='01-|0--|---|---|---|-|-' and tm['dm']=={'mellow':'0','ripple':'0','sage':'0'} and tm['e']=='01-|0--|---|--2|--2|0|-',str((tm['d'],tm['dm'],tm['e'])))
-  chk('opening the page mid-window: earlier beats missed, Mellow’s minute-8 beat still fires inside its grace',tm['l']=='---|---|-1-|---|---|-|-' and tm['lm']=={'dash':'01','zippy':'01','mellow':'0','ripple':'0','sage':'0','chief':'0'},str((tm['l'],tm['lm'])))
+  chk('nothing fires one second early; each beat fires inside its grace; only the caller whose beat it is calls',tm['a'] in ('','---|---|---|---|---|-|-') and tm['b']=='0--|---|---|---|---|-|-' and tm['c']=='0--|---|---|---|---|-|-',str((tm['a'],tm['b'],tm['c'])))
+  chk('a late page records the beats it missed as missed (never back-filled) and still fires the ones in range',tm['d']=='01-|---|---|---|---|-|-' and tm['dm']=={'zippy':'0','mellow':'0','ripple':'0','sage':'0'} and tm['e']=='01-|---|---|--2|--2|0|-',str((tm['d'],tm['dm'],tm['e'])))
+  chk('opening the page mid-window: earlier beats missed, the minute-8 beats (Zippy and Mellow, same second) still fire inside their grace',tm['l']=='---|-1-|-1-|---|---|-|-' and tm['lm']=={'dash':'01','zippy':'0','mellow':'0','ripple':'0','sage':'0','chief':'0'},str((tm['l'],tm['lm'])))
   chk('Sage’s 14:30 call (and Flippy’s 14:15 look) are missed, not forced, once their short grace is over',('2' in tm['latem'].get('sage','')) and tm['late'].endswith('---|-|-') and tm['latem'].get('flippy')=='0',str((tm['late'],tm['latem'])))
   # 2) equal capability
   eq=px.evaluate("""(()=>{__reset();const P=CallersPanel.PROFILES,ids=CallersPanel.REG,sum=i=>Object.values(P[i].w).reduce((a,b)=>a+b,0),o={};
@@ -420,7 +420,7 @@ with sync_playwright() as p:
   cw=px.evaluate("""(()=>{__reset();const s=CallersPanel._store(),o={},W=Math.floor(Date.now()/900000)*900-12*900,D=PulseIndicators.feed(),inp=__syn(W+700,W,70010);D.cb=inp.cb;D.bn=inp.bn;
     const r=s.rounds[W]||(CallersPanel.fire(W,'dash',0,W+61,inp),s.rounds[W]);r.calls.dash[0]=null;
     const inj=(id,i,dir,at)=>{r.calls[id][i]={i:i,sec:CallersPanel.BEATS[id][i],at:at,dir:dir,conf:60,gate:{lvl:'ok',tr:[]}}};
-    inj('dash',0,'UP',W+60);inj('zippy',0,'UP',W+120);inj('mellow',0,'UP',W+180);inj('ripple',0,'DOWN',W+240);inj('flippy',0,'DOWN',W+250);
+    inj('dash',0,'UP',W+60);inj('zippy',0,'UP',W+240);inj('mellow',0,'UP',W+180);inj('ripple',0,'DOWN',W+240);inj('flippy',0,'DOWN',W+250);
     CallersPanel.fire(W,'sage',0,W+310,inp);const c=r.calls.sage[0];o.crowd=c.crowd;o.dir=c.dir;o.adj=c.cp.adj;o.expect=Math.round((c.crowd.same/c.crowd.tot-0.5)*16);o.ids=CallersPanel._earlier(r,'sage',W+400).map(x=>x.id);
     const P=CallersPanel.PROFILES.zippy,L=m=>({momentum:{lean:m,n:2},volume:{lean:m,n:2},chart:{lean:m,n:2},revert:{lean:m,n:2},flow:{lean:m,n:2},strike:{lean:m,n:2},grokky:{lean:m,n:1}}),dd=CallersPanel.decide(L(.3),P,0);
     o.dis=CallersPanel.confidence(dd,L(.3),P,'ok',{same:0,tot:3}).parts.adj;o.agr=CallersPanel.confidence(dd,L(.3),P,'ok',{same:3,tot:3}).parts.adj;o.none=CallersPanel.confidence(dd,L(.3),P,'ok',{same:1,tot:1}).parts.adj;
@@ -485,7 +485,7 @@ with sync_playwright() as p:
     localStorage.removeItem('pulseboard2.archive.v1');GrokkyArchive._reload();localStorage.removeItem('pulseboard2.callers.v2');CallersPanel._resetCache();run();const st=GrokkyArchive._state();const r=st.rounds[W];
     o.logged=Object.keys(r.c).length==7&&Object.entries(r.c).every(([k,a])=>a.length==CallersPanel.BEATS[k].length);o.settled=r.s===1&&r.r===0;o.agg=GrokkyArchive.summary();o.bench=r.b.filter(x=>x!=null).length;
     // size bound: prune oldest beyond the cap, keep totals + note
-    GrokkyArchive._setMax(6000);for(let k=0;k<200;k++){const w=W-(k+1)*900;GrokkyArchive.logCall(w,'zippy',120,'UP',60,'ok');GrokkyArchive.settle(w,'yes')}
+    GrokkyArchive._setMax(6000);for(let k=0;k<200;k++){const w=W-(k+1)*900;GrokkyArchive.logCall(w,'zippy',240,'UP',60,'ok');GrokkyArchive.settle(w,'yes')}
     const before=Object.keys(GrokkyArchive._state().rounds).length;GrokkyArchive._save();const after=Object.keys(GrokkyArchive._state().rounds).length;const sm=GrokkyArchive.summary();
     o.prune={before:before,after:after,pruned:sm.pruned,rounds:sm.rounds,note:sm.note,bytes:sm.bytes,wins:sm.callers.zippy.w};GrokkyArchive._setMax(900000);return o})()""")
   print('archive',{k:ar[k] for k in ('same','logged','settled','bench','prune')})

@@ -306,12 +306,12 @@ window.PulseBadges={KEY:KEY,MINLEAD:MINLEAD,IDS:IDS,record:record,returned:retur
 /* ===== callers.js (shared with the site, unmodified) ===== */
 /* The callers — Dash, Zippy, Mellow, Ripple, Sage (v2) + Flippy + The Chief (Pulse Board 2). PAPER-ONLY: no money, no Kalshi orders, ever.
    BEATS (seconds into each 15-minute Kalshi window; one table, change it here and everything follows — docs/callers-v2.md):
-     Dash   (aggressive early)          1:00  6:00 11:00     Zippy  (momentum)               2:00  7:00 12:00
+     Dash   (aggressive early)          1:00  6:00 11:00     Zippy  (momentum)               4:00  8:00 12:00
      Mellow (volume)                    3:00  8:00 13:00     Ripple (charts / price action)  4:00  9:00 14:00
      Sage   (conservative confirmation) 5:00 10:00 14:30  <- minute 15 is settlement, so Sage's third call is at 14:30 (set BEATS.sage[2] to change)
      Flippy (late-flip gambler)         14:15 ONLY (one beat; free slot, 15 s before Sage; change BEATS.flippy[0] — 13:30 = 810 is also free)
-     The Chief (overall status)         7:30 ONLY  (450 s, free slot between Zippy 7:00 and Mellow 8:00): reads the latest call of Dash, Zippy, Mellow, Ripple and Sage — see chiefEval()
-   Seventeen unique beats, never two callers at the same second. A beat only fires if the page is open within GRACE (45 s, clamped so it ends before the window closes); otherwise it is recorded as missed — nothing is back-filled.
+     The Chief (overall status)         7:30 ONLY  (450 s, free slot between Dash 6:00 and Mellow/Zippy 8:00): reads the latest call of Dash, Zippy, Mellow, Ripple and Sage (Zippy's latest at 7:30 is his 4:00 call) — see chiefEval()
+   Seventeen beats; Zippy deliberately shares 4:00 with Ripple and 8:00 with Mellow (his choice, 13 Nov), all other beats are unique. Same-second beats fire one after another in the table order. A beat only fires if the page is open within GRACE (45 s, clamped so it ends before the window closes); otherwise it is recorded as missed — nothing is back-filled.
    EQUAL CAPABILITY: every caller gets the same shared reading vector (indicators.js) + what Grokky 1 & 2 picked and why, and runs the same decide()/confidence()/memory code. Only the emphasis differs: each has a fixed 1.00 weight budget over seven groups
    (momentum, volume, chart, revert, flow, strike, grokky):
      Dash   mom .26 vol .20 chart .12 revert .04 flow .08 strike .20 grokky .10   (leans on what is available early; bolder: K 6, confidence x1.08)
@@ -326,7 +326,7 @@ window.PulseBadges={KEY:KEY,MINLEAD:MINLEAD,IDS:IDS,record:record,returned:retur
 (function(){
 'use strict';
 var KEY='pulseboard2.callers.v2',KEY1='pulseboard2.callers.v1',Q=900,GRACE=45,CAPR=60,SNAP=[4,8,12],CHIEF_MARGIN=0.15,PH_HOLD=600,PH_MIN=1800,DAMP=0.7,TRUST_MIN=15,FLIP_THR=70,FLIP_PICKY=5,FLIP_BASE=0.25,FLIP_NMIN=8;
-var BEATS={dash:[60,360,660],zippy:[120,420,720],mellow:[180,480,780],ripple:[240,540,840],sage:[300,600,870],flippy:[855],chief:[450]};
+var BEATS={dash:[60,360,660],zippy:[240,480,720],mellow:[180,480,780],ripple:[240,540,840],sage:[300,600,870],flippy:[855],chief:[450]};
 var IDS=['dash','zippy','mellow','ripple','sage','flippy','chief'],REG=['dash','zippy','mellow','ripple','sage'];
 var GL={momentum:'price momentum',volume:'volume & buyers vs sellers',chart:'chart shape',revert:'bounce-back',flow:'order flow',strike:'distance to strike & crowd',grokky:'the Grokkys’ evidence'};
 var GI={momentum:'🚀',volume:'📊',chart:'🕯️',revert:'🔁',flow:'🌊',strike:'🎯',grokky:'🤝'};
@@ -784,7 +784,7 @@ function timeline(now){
   var leg=IDS.map(function(id){return '<span class="lg"><i style="background:'+PROFILES[id].col+'"></i>'+PROFILES[id].name+' <small>'+BEATS[id].map(beatTxt).join(' · ')+'</small></span>'}).join('');
   var ticks=[0,5,10,15].map(function(m){return '<span class="bt" style="left:'+(m/15*100)+'%">'+m+'</span>'}).join('');
   return '<div class="mtl" aria-label="Window timeline"><div class="mtl-bar mtl2"><i style="width:'+(el/Q*100).toFixed(1)+'%"></i>'+dots+ticks+'</div>'
-   +'<div class="mtl-txt tiny mut">Window '+clock(cr.W)+' · '+Math.floor(el/60)+' of 15 min gone · seventeen beats, no two at the same second (the Chief weighs in at 7:30; minute 15 is settlement, so Sage’s last call is at 14:30; Flippy only calls at 14:15 if he sees a flip)</div><div class="lgrow">'+leg+'</div></div>';
+   +'<div class="mtl-txt tiny mut">Window '+clock(cr.W)+' · '+Math.floor(el/60)+' of 15 min gone · seventeen beats (Zippy shares minute 4 with Ripple and minute 8 with Mellow; the Chief weighs in at 7:30; minute 15 is settlement, so Sage’s last call is at 14:30; Flippy only calls at 14:15 if he sees a flip)</div><div class="lgrow">'+leg+'</div></div>';
 }
 function liveCrowd(now){
   var cr=curRound(now),r=cr.r,list=[];REG.forEach(function(id){var c=lastCall(r,id);if(c&&c.dir&&!c.shadow)list.push({id:id,dir:c.dir,sec:c.sec})});

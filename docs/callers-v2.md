@@ -7,13 +7,13 @@ Everything here is **paper only**: no money, no Kalshi orders, ever. Branch `cal
 | Caller | Style | Beats (min:sec into the 15-min window) |
 |---|---|---|
 | Dash | aggressive early (momentum + volume) | 1:00 · 6:00 · 11:00 |
-| Zippy | momentum | 2:00 · 7:00 · 12:00 |
+| Zippy | momentum | 4:00 · 8:00 · 12:00 |
 | Mellow | volume (surges, CVD, taker-buy share, a little bounce-back) | 3:00 · 8:00 · 13:00 |
 | Ripple | chart structure (EMA cross, VWAP, RSI, support/resistance, candles) | 4:00 · 9:00 · 14:00 |
 | Sage | conservative confirmation (strike gap + crowd weigh most) | 5:00 · 10:00 · **14:30** |
 | Flippy | late-flip gambler (see below) | **14:15 only** |
 
-* 16 beats, all unique, never two callers in the same second (tested).
+* Zippy's beats moved from 2/7/12 to **4/8/12** (13 Nov, Pulse Board 2 only, in both the site's `BEATS` table and the `pulse2-engine` Worker, which bundles the same `callers.js`). Zippy now shares 4:00 with Ripple and 8:00 with Mellow; same-second beats fire one after another. Old Zippy calls keep their stored time and score. The Chief (7:30) sees Zippy's 4:00 call as his latest.
 * **Minute 15 is settlement**, so Sage's third call cannot be at 15:00. It is at **14:30** (870 s). To change it, edit `BEATS.sage[2]` (one number, seconds); everything (timeline, chips, grace, tests' expectation text) follows. Flippy's 14:15 = `BEATS.flippy[0]` (855 s); 13:30 = 810 s is also free.
 * Grace: a beat fires only if the page is open within `min(45 s, 895 − beat)` of it (Sage 25 s, Flippy 40 s). Otherwise it is recorded as **missed**; nothing is back-filled.
 * **Equal capability**: Dash/Zippy/Mellow/Ripple/Sage read the same shared vector (`indicators.js`) plus the Grokkys' picks, and run the same `decide()` / `confidence()` / memory code. Only their weights differ (each totals 1.00 over seven groups):
