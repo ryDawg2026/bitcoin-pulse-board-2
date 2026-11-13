@@ -1,0 +1,728 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Bitcoin Pulse Board 2</title>
+<style>
+:root{--bg:#1c1612;--card:#2a211b;--card2:#342921;--line:#4d3d31;--tx:#fdf3e8;--mut:#c9b8a8;--up:#2fd18b;--dn:#ff5d73;--acc:#ffa63d;--blue:#7cc4e8;--r:20px;--shadow:0 6px 22px rgba(0,0,0,.28)}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.wrap{max-width:1100px;margin:0 auto;padding:14px}
+header{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px}
+h1{font-size:22px;margin:0}h1 span{color:var(--acc)}
+.sub{color:var(--mut);font-size:13px;margin-top:2px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.card h2{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut);margin:0 0 10px;font-weight:600}
+.grid{display:grid;gap:12px}
+.g2{grid-template-columns:1fr 1fr}
+@media(max-width:760px){.g2{grid-template-columns:1fr}.wrap{padding:10px}}
+button{font:inherit;color:var(--tx);background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:8px 14px;cursor:pointer}
+button:hover:not(:disabled){border-color:var(--blue)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.up{background:rgba(47,209,139,.15);border-color:var(--up);color:var(--up);font-weight:700}
+button.dn{background:rgba(255,93,115,.15);border-color:var(--dn);color:var(--dn);font-weight:700}
+button.small{padding:4px 9px;font-size:13px}
+input[type=number]{font:inherit;color:var(--tx);background:#211a15;border:1px solid var(--line);border-radius:10px;padding:8px 10px;width:130px}
+.pill{display:inline-block;padding:2px 10px;border-radius:99px;font-size:12px;border:1px solid var(--line);color:var(--mut)}
+.pill.ok{color:var(--up);border-color:rgba(47,209,139,.5)}.pill.bad{color:var(--dn);border-color:rgba(255,93,115,.5)}
+.pill.bf{color:#c9a3ff;border-color:rgba(201,163,255,.5)}.pill.lv{color:var(--blue);border-color:rgba(90,169,255,.5)}
+.big{font-size:44px;font-weight:800;line-height:1}
+.up-t{color:var(--up)}.dn-t{color:var(--dn)}.mut{color:var(--mut)}
+.row{display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+.kv{display:flex;flex-direction:column}.kv b{font-size:18px}.kv small{color:var(--mut);font-size:12px}
+.sig{display:grid;grid-template-columns:150px 1fr 70px 60px;gap:8px;align-items:center;padding:5px 0;border-bottom:1px dashed var(--line);font-size:13px}
+.sig:last-child{border:0}
+.bar{position:relative;height:10px;background:#211a15;border-radius:6px;overflow:hidden}
+.bar i{position:absolute;top:0;bottom:0}
+.bar:after{content:"";position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--mut)}
+.sig .nm small{display:block;color:var(--mut)}
+@media(max-width:560px){.sig{grid-template-columns:1fr 70px;}.sig .bar{grid-column:1/3}.sig .w{display:none}}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px;white-space:nowrap}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right}
+th:first-child,td:first-child{text-align:left}th{color:var(--mut);font-weight:600;position:sticky;top:0;background:var(--card)}
+td.l,th.l{text-align:left}
+.chartbox{position:relative;height:300px}
+.logwrap{max-height:420px;overflow:auto}
+.banner{background:#4a3515;border:1px solid #9a7428;color:#ffd48a;padding:8px 12px;border-radius:10px;margin-bottom:12px;font-size:13px;display:none}
+details summary{cursor:pointer;color:var(--blue)}
+.howto p,.howto li{color:#efe2d4;font-size:14px}
+.disc{border-color:#8a6d2a;background:#2e2517;color:#f3e3b8;font-size:13px}
+footer{color:var(--mut);font-size:12px;text-align:center;padding:10px 0 30px}
+.lockbadge{font-size:12px;color:var(--mut)}
+.tfb.on{background:var(--blue);color:#1c1612;border-color:var(--blue);font-weight:700}
+.clk{cursor:pointer}.clk:hover td{background:#3b2e25}.pmhead{font-size:15px;margin-bottom:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}.pmhead .av{width:46px;height:46px}#pmBody p{margin:7px 0;font-size:14px;line-height:1.5}#pmBody ul{margin:4px 0 6px 18px;padding:0;font-size:13.5px;color:#efe2d4}
+.askbox{display:flex;flex-direction:column;gap:8px}
+#askLog{height:300px;overflow:auto;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px}
+.askmsg{margin:0 0 10px;max-width:92%}.askmsg.user{margin-left:auto;background:#5b3f2c;border:1px solid #8c6244;border-radius:12px 12px 2px 12px;padding:7px 11px;font-size:14px}
+.askmsg.bot .asktag{font-size:11px;color:var(--mut);margin-bottom:2px;letter-spacing:.02em}.askmsg.bot .askbody{background:#33271f;border:1px solid var(--line);border-radius:12px 12px 12px 2px;padding:8px 12px;font-size:14px;line-height:1.5}
+.askbody p{margin:4px 0}.askbody ul{margin:4px 0 4px 18px;padding:0}.askpm p{margin:6px 0}
+#askForm{display:flex;gap:8px}#askInput{flex:1;min-width:0;font:inherit;color:var(--tx);background:#211a15;border:1px solid var(--line);border-radius:10px;padding:9px 11px}
+#askChips{display:flex;flex-wrap:wrap;gap:6px}
+@media(max-width:560px){#askLog{height:260px}.askmsg{max-width:100%}}
+.pcwrap{position:relative;height:360px}.pcwrap canvas{width:100%;height:100%;display:block;touch-action:pan-y}
+.sggrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:12px}
+.sgbox{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px;min-width:0}.sgbox h3{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin:0 0 6px;font-weight:600}
+.sgbox canvas{width:100%;height:120px;display:block}.sgbox .n{font-size:11.5px;color:var(--mut);margin-top:4px;line-height:1.35}
+@media(max-width:560px){.pcwrap{height:300px}}
+.ctxgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:12px}
+.mini{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:12px;min-width:0;overflow-wrap:anywhere}
+.mini .cs{white-space:nowrap;flex-shrink:0}.mini h3{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin:0 0 8px;display:flex;justify-content:space-between;align-items:center;gap:8px;font-weight:600}
+.mini a{color:var(--blue)}.ctxnote{font-size:11.5px;margin-top:8px;line-height:1.35}
+.newsrow{padding:5px 0;border-bottom:1px dashed var(--line);font-size:13.5px}.newsrow:last-child{border:0}
+.evrow{padding:4px 0;font-size:13.5px}.warn{color:#ffb454}.sit{background:#4a1f1f;border:1px solid var(--dn);color:#ffb3bf;padding:6px 10px;border-radius:8px;margin-bottom:6px;font-size:13px}
+.ctxalert{display:none;padding:8px 12px;border-radius:10px;margin-bottom:12px;font-size:13px}.ctxalert.red{background:#4a1f1f;border:1px solid var(--dn);color:#ffb3bf}.ctxalert.amber{background:#4a3515;border:1px solid #9a7428;color:#ffd48a}
+.noedge{color:var(--mut)!important}.pill.warn{color:#ffb454;border-color:rgba(255,180,84,.5)}.pill.bad.warn{color:#ffb454}
+details>summary{cursor:pointer}
+.gk{margin-bottom:0}.gkhead{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:17px}.gkhead b{font-size:18px}
+.gkwhy ul{margin:4px 0 4px;padding-left:18px;font-size:13.5px}.gkwhy li{margin:3px 0}
+.gkfoot{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:10px;padding-top:8px;border-top:1px dashed var(--line);font-size:13px;color:var(--mut)}.gkfoot b{color:var(--tx)}
+.gknote{font-size:12.5px;margin:8px 2px 12px}.gkgrid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:12px}.gkgrid>*{min-width:0}@media(max-width:860px){.gkgrid{grid-template-columns:minmax(0,1fr)}}
+.ftab{font-size:12.5px;white-space:nowrap}.ftab th,.ftab td{padding:5px 5px}.ftab td.l{white-space:normal}.ftab tr.tot td{border-top:1px solid var(--line);font-weight:600}
+select{font:inherit;color:var(--tx);background:#211a15;border:1px solid var(--line);border-radius:10px;padding:6px 8px}
+
+/* ===== friendlier look: warm dark palette, soft rounded cards, motion that respects prefers-reduced-motion ===== */
+html,body{font:15.5px/1.55 ui-rounded,"SF Pro Rounded","Nunito","Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+body{background:radial-gradient(1200px 500px at 10% -10%,#3a2819 0,transparent 60%),radial-gradient(900px 420px at 100% 0,#2b1f2e 0,transparent 55%),var(--bg)}
+h1{font-size:25px;letter-spacing:-.01em}.sub{font-size:14px}
+.card{border-radius:var(--r);box-shadow:var(--shadow);border:1px solid rgba(255,214,170,.09);padding:18px;background:linear-gradient(180deg,rgba(255,255,255,.025),transparent 40%),var(--card);transition:transform .25s ease,box-shadow .25s ease}
+.card:hover{transform:translateY(-1px);box-shadow:0 10px 28px rgba(0,0,0,.34)}
+.card h2{font-size:16.5px;letter-spacing:0;text-transform:none;color:var(--tx);font-weight:700;margin:0 0 12px}
+.card h2 .mut{font-weight:500;font-size:12.5px}
+.mini,.sgbox{border-radius:16px;border-color:rgba(255,214,170,.1)}.mini h3,.sgbox h3{text-transform:none;letter-spacing:0;font-size:13.5px;color:var(--tx);font-weight:650}
+button{border-radius:999px;padding:8px 16px;transition:transform .15s ease,background .2s,border-color .2s,box-shadow .2s}
+button:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.25)}button:active:not(:disabled){transform:scale(.97)}
+button.small{padding:5px 12px}
+.pill{border-radius:999px;padding:3px 12px}
+.pill.ok::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:currentColor;margin-right:6px;vertical-align:1px;animation:pulse 1.9s ease-in-out infinite}
+input[type=number],select,#askInput{border-radius:999px}
+table{font-size:13.5px}th{font-weight:650}
+a{color:#9bd4f0}
+.banner{border-radius:14px}
+.logwrap{border-radius:12px}
+/* decision-trail expanders */
+.xpw{margin-top:8px}
+.xpb{display:inline-flex;align-items:center;gap:6px;background:rgba(255,214,170,.08);border:1px solid rgba(255,214,170,.18);color:var(--tx);font-size:13px;padding:5px 13px}
+.xpb .chev{display:inline-block;transition:transform .3s ease}.xpb[aria-expanded=true] .chev{transform:rotate(90deg)}
+.xp{display:grid;grid-template-rows:0fr;transition:grid-template-rows .35s ease,opacity .3s ease;opacity:0}
+.xp.open{grid-template-rows:1fr;opacity:1}.xp.noanim{transition:none}
+.xpin{overflow:hidden;min-height:0}
+.xpbody{margin-top:8px;padding:10px 14px;background:rgba(0,0,0,.18);border-radius:14px;font-size:13.5px;line-height:1.55}
+.xpbody ul{margin:4px 0 6px;padding-left:18px}.xpbody li{margin:3px 0}.xpbody h4{margin:8px 0 3px;font-size:13px;color:var(--acc);font-weight:700}.xpbody h4:first-child{margin-top:0}
+.xpbody{overflow-x:auto}.xpbody .tiny{font-size:12px;color:var(--mut)}
+/* Grokky characters */
+.gk{position:relative;overflow:hidden}
+.gk::after{content:"";position:absolute;right:-60px;top:-60px;width:180px;height:180px;border-radius:50%;opacity:.12;pointer-events:none}
+#gk1::after{background:#58c7c0}#gk2::after{background:#ff8a65}
+.gkhead{gap:12px}.av{width:58px;height:58px;flex:0 0 58px;filter:drop-shadow(0 4px 8px rgba(0,0,0,.35))}
+.av .eyes{transform-origin:32px 29px;animation:blink 5.5s infinite}.av2 .eyes{animation-delay:1.7s}
+.gkname b{font-size:19px;display:block;line-height:1.1}.gkname small{color:var(--mut);font-size:12.5px}
+.bubble{position:relative;margin:10px 0 6px;padding:11px 15px;border-radius:18px 18px 18px 6px;font-size:15px;line-height:1.5}
+#gk1 .bubble{background:rgba(88,199,192,.14);border:1px solid rgba(88,199,192,.3)}#gk2 .bubble{background:rgba(255,138,101,.14);border:1px solid rgba(255,138,101,.3)}
+.pickbig{display:inline-block;font-weight:800;font-size:26px;letter-spacing:.01em;vertical-align:-3px}
+.gkmeta{font-size:12.5px;color:var(--mut);margin-top:4px}
+.teaser{font-size:13.5px;margin:6px 0 0;color:#efe2d4}
+.sbar{height:12px;background:rgba(0,0,0,.28);border-radius:99px;overflow:hidden;margin-top:6px}.sbar i{display:block;height:100%;border-radius:99px;width:0;transition:width .9s cubic-bezier(.2,.8,.2,1)}
+.sbar.s1 i{background:linear-gradient(90deg,#3aa6b9,#6fe0cf)}.sbar.s2 i{background:linear-gradient(90deg,#ff7a6b,#ffb36b)}
+.scorecol{min-width:150px;flex:1}
+.say{display:flex;gap:9px;align-items:flex-start;margin:6px 0;font-size:13.5px}.say .av{width:32px;height:32px;flex-basis:32px}.say span{background:rgba(255,214,170,.07);padding:7px 12px;border-radius:14px}
+tr.dtl td{padding:0;border:0;text-align:left;white-space:normal}tr.dtl .xpbody{margin:0 0 8px;font-size:13px}
+tr.clk td:last-child{position:relative}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--mut);cursor:pointer}
+/* motion */
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes slidein{from{opacity:0;transform:translateX(-16px);background:rgba(255,166,61,.25)}to{opacity:1;transform:none;background:transparent}}
+@keyframes pop{0%{transform:scale(.3) rotate(-14deg);opacity:0}60%{transform:scale(1.18) rotate(4deg);opacity:1}100%{transform:none}}
+@keyframes bounce{0%,100%{transform:translateY(0)}35%{transform:translateY(-9px)}65%{transform:translateY(2px)}}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.7)}}
+@keyframes blink{0%,94%,100%{transform:scaleY(1)}97%{transform:scaleY(.1)}}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+@keyframes bubblein{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:none}}
+.card{animation:rise .6s cubic-bezier(.2,.8,.2,1) backwards;animation-delay:calc(var(--i,0)*60ms)}
+.rowin{animation:slidein .9s ease both}
+.reveal .pickbig{animation:pop .75s cubic-bezier(.2,1.2,.3,1) both}.reveal .av{animation:bounce .9s ease}.reveal .bubble{animation:bubblein .6s ease both}
+.askmsg{animation:bubblein .35s ease both}
+.cu{font-variant-numeric:tabular-nums}
+@media(max-width:560px){h1{font-size:21px}.card{padding:14px;border-radius:18px}.av{width:48px;height:48px;flex-basis:48px}.pickbig{font-size:23px}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+/* ===== callers ===== */
+.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}@media(max-width:980px){.g3{grid-template-columns:minmax(0,1fr)}}
+.cc{background:var(--card2);border:1px solid var(--line);border-radius:var(--r);padding:14px;min-width:0}
+.sub3{margin:18px 0 8px;font-size:15px}.sub3 .mut{font-weight:500;font-size:12.5px}
+.avc{width:54px;height:54px;flex:0 0 54px}.av-mellow .eyes{animation-delay:2.4s}.av-ripple .eyes{animation-delay:3.4s}
+.gkname{display:flex;flex-direction:column;line-height:1.2}.gkname small{color:var(--mut);font-size:12.5px}
+.cb-zippy{background:rgba(255,180,84,.13);border:1px solid rgba(255,180,84,.32)}.cb-mellow{background:rgba(123,216,143,.12);border:1px solid rgba(123,216,143,.3)}.cb-ripple{background:rgba(108,195,255,.12);border:1px solid rgba(108,195,255,.3)}
+.mchips{display:flex;gap:8px;margin:10px 0 2px;flex-wrap:wrap}
+.mchip{display:inline-flex;flex-direction:column;align-items:center;min-width:58px;padding:5px 10px;border-radius:14px;border:1px solid var(--line);background:rgba(0,0,0,.18);line-height:1.15;position:relative}
+.mchip small{font-size:11px;color:var(--mut)}.mchip b{font-size:17px}.mchip i{position:absolute;top:-6px;right:-4px;font-style:normal;font-size:12px;background:var(--card);border-radius:50%;width:18px;height:18px;line-height:18px;text-align:center;border:1px solid var(--line)}
+.mchip.up{border-color:rgba(47,209,139,.55)}.mchip.up b{color:var(--up)}.mchip.dn{border-color:rgba(255,93,115,.55)}.mchip.dn b{color:var(--dn)}
+.mchip.win i{color:var(--up)}.mchip.loss i{color:var(--dn)}.mchip.wait,.mchip.miss{opacity:.6}.mchip.wait b{font-size:15px}
+.cmeter{display:flex;align-items:center;gap:8px;margin:8px 0 2px;font-size:11.5px;color:var(--mut)}.cmeter .sbar{flex:1;margin:0}.mlab{white-space:nowrap;font-size:11.5px}
+.sbar.upbar{background:linear-gradient(90deg,rgba(255,93,115,.55),rgba(255,93,115,.55))}.sbar.upbar i{background:linear-gradient(90deg,#2fd18b,#7be6b4)}
+.sbar.mbar i{background:linear-gradient(90deg,#ffa63d,#ffd27a)}
+.cfoot{margin-top:10px}.mbars{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px}.mb small{display:block;font-size:11.5px;color:var(--mut);white-space:nowrap}.mb .sbar{height:8px;margin:3px 0}
+.mtl{margin:2px 0 14px}.mtl-bar{position:relative;height:10px;background:rgba(0,0,0,.28);border-radius:99px;margin:8px 8px 22px}.mtl-bar>i{position:absolute;left:0;top:0;bottom:0;border-radius:99px;background:linear-gradient(90deg,#ffa63d,#ffd27a);transition:width 1s linear}
+.mtl-dot{position:absolute;top:50%;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;background:var(--card);border:2px solid var(--line)}.mtl-dot em{position:absolute;top:21px;left:50%;transform:translateX(-50%);font-style:normal;font-size:11px;color:var(--mut);white-space:nowrap}.mtl-dot em::after{content:" min"}
+.mtl-dot.done{border-color:var(--up);background:rgba(47,209,139,.35)}.mtl-dot.due{border-color:var(--acc)}.mtl-dot.miss{border-color:var(--dn);opacity:.6}
+.ctab{width:100%;border-collapse:collapse;font-size:13px}.ctab th,.ctab td{padding:7px 8px;text-align:center;border-bottom:1px solid var(--line);vertical-align:middle}.ctab th.l,.ctab td.l{text-align:left}.ctab td small{display:block;color:var(--mut);font-size:11px}
+.ctab .sbar{height:7px;margin:3px auto 0;max-width:90px}.ctab tr.ref td{opacity:.8}.cn{display:inline-flex;align-items:center;gap:8px}.cn .av{width:30px;height:30px;flex-basis:30px}
+.cbtab th .av{width:30px;height:30px;display:block;margin:0 auto 2px}.cbtab th small{font-size:10.5px;color:var(--mut);font-weight:500}.cbtab td.ag{color:var(--up);font-weight:700}.cbtab td.dis{color:var(--dn);font-weight:700}.cbtab tr.tot td{border-top:2px solid var(--line)}
+.lean{display:inline-flex;align-items:center;gap:5px;font-size:12px;min-width:70px;justify-content:flex-start}.lean i{display:block;height:6px;border-radius:9px;max-width:46px;min-width:2px;background:var(--mut)}.lean.up{color:var(--up)}.lean.up i{background:var(--up)}.lean.dn{color:var(--dn)}.lean.dn i{background:var(--dn)}.lean.q i{display:none}
+.cbsum{margin-bottom:10px}.cbline{font-size:14.5px;margin:6px 0 2px}.cbnote{font-size:13.5px;margin:6px 0;color:#efe2d4}
+.reveal .mchip,.cc.reveal .bubble{animation:bubblein .6s ease both}
+
+.v2tag{font-size:.5em;vertical-align:super;padding:2px 9px;border-radius:99px;background:rgba(255,166,61,.18);border:1px solid rgba(255,166,61,.5);color:var(--acc)!important;margin-left:4px}
+/* ===== callers v2 ===== */
+.cb-flippy{background:rgba(255,95,176,.12);border:1px solid rgba(255,95,176,.34)}.av-flippy .eyes{animation-delay:3s}
+.mchip.sit{opacity:.85;border-style:dotted}.mchip.sit b{font-size:15px}.mchip.sit i{color:var(--up)}
+.flipboard{margin-top:10px;padding:10px 12px;border-radius:14px;border:1px dashed rgba(255,95,176,.5);background:rgba(255,95,176,.06)}.fbh{font-size:13px;font-weight:700;margin-bottom:6px}.fbg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;text-align:center}.fbg b{font-size:19px;display:block}.fbg small{display:block;font-size:11px;color:var(--mut);line-height:1.2}
+.cgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px}
+.cb-dash{background:rgba(255,122,89,.13);border:1px solid rgba(255,122,89,.34)}.cb-sage{background:rgba(201,163,255,.13);border:1px solid rgba(201,163,255,.34)}
+.av-dash .eyes{animation-delay:1.4s}.av-sage .eyes{animation-delay:4.2s}
+.mchip em{font-style:normal;font-size:10.5px;color:var(--mut)}.mchip.skip{opacity:.8;border-style:dashed}.mchip.skip b{font-size:15px}.mchip.caution{box-shadow:0 0 0 2px rgba(255,180,84,.45)}.mchip.caution i{color:#ffb454}
+.sbar.warnbar{background:rgba(0,0,0,.25)}.sbar.warnbar i{background:linear-gradient(90deg,#ffa63d,#ffd27a)}
+.memrow{display:flex;gap:6px;margin:4px 0}.md{width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;border:1px solid var(--line)}.md.ok{color:var(--up);border-color:rgba(47,209,139,.5);background:rgba(47,209,139,.12)}.md.bad{color:var(--dn);border-color:rgba(255,93,115,.5);background:rgba(255,93,115,.1)}
+.crowdline{font-size:12.5px;margin:6px 0 2px;color:#efe2d4}
+.mtl2{margin-bottom:26px!important}.bdot{position:absolute;top:50%;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;border:2px solid var(--line);background:var(--card)}.bdot.skip{border-style:dashed}.bdot.miss{opacity:.4}.bdot.due{box-shadow:0 0 0 2px rgba(255,255,255,.18)}
+.bt{position:absolute;top:16px;transform:translateX(-50%);font-size:11px;color:var(--mut)}.bt::after{content:" min"}
+.lgrow{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px;font-size:12.5px}.lg{display:inline-flex;align-items:center;gap:5px}.lg i{width:10px;height:10px;border-radius:50%;display:inline-block}.lg small{color:var(--mut);font-size:11.5px}
+.phbox{background:var(--card2);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;margin:6px 0 10px}.phrow{display:flex;gap:10px;justify-content:space-between;align-items:center;flex-wrap:wrap}.phlab{color:var(--mut);font-size:13px}
+.btn.sm{font:inherit;font-size:12.5px;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--tx);cursor:pointer}.btn.sm:hover{background:rgba(255,255,255,.12)}
+.gate{margin-top:8px;font-size:13px;padding:7px 10px;border-radius:12px;border:1px solid var(--line)}.gate.ok{color:var(--up);border-color:rgba(47,209,139,.35)}.gate.caution{color:#ffcf8a;border-color:rgba(255,180,84,.5);background:rgba(255,180,84,.08)}.gate.skip{color:#ffb3bd;border-color:rgba(255,93,115,.5);background:rgba(255,93,115,.08)}
+.crbox{margin:0 0 12px;font-size:14px}.crowd0{margin-bottom:2px}
+.archbox{margin-top:12px;padding:12px 14px;border-radius:var(--r);border:1px dashed var(--line)}.archhead{font-size:14px}.archline{font-size:13px;margin:4px 0}
+.flipboard .tiny{font-size:12px;margin-top:6px}
+.sandbadge{display:inline-block;margin-left:8px;padding:1px 9px;border-radius:99px;font-size:11px;font-weight:700;letter-spacing:.04em;background:#ffcf5a;color:#3a2600}
+.mbars{gap:6px}.mb small{overflow:hidden;text-overflow:ellipsis}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div>
+    <h1>₿ Bitcoin <span>Pulse</span> Board <span class="v2tag" title="A separate copy of the board with its own scores and memory">2</span></h1>
+    <div class="sub">Hi there! 👋 I keep an eye on Bitcoin so you can think things over: a fresh up-or-down guess every 15 minutes, built from free public prices. Everything here is play money.</div>
+  </div>
+  <div class="row">
+    <span class="pill ok" id="nextPill">next call in <b id="countdown">--:--</b></span>
+    <button id="refreshBtn" aria-label="Refresh now">⟳ Refresh now</button>
+  </div>
+</header>
+
+<div class="banner" id="banner"></div>
+<div class="ctxalert" id="ctxAlert"></div>
+
+<div class="grid g2" id="grokkyRow">
+  <section class="card gk" id="gk1" aria-label="Grokky 1"></section>
+  <section class="card gk" id="gk2" aria-label="Grokky 2"></section>
+</div>
+
+<section class="card" id="callersCard">
+  <h2>🧑‍🤝‍🧑 Meet the callers <span class="mut">· Dash, Zippy, Mellow, Ripple, Sage and Flippy · each on their own beat · paper only, no money, no orders</span></h2>
+  <div class="mut" style="font-size:13px;margin-bottom:10px">Every 15-minute window, we take turns: Dash first (minute 1), then Zippy, Mellow, Ripple and Sage, each one a minute apart, three rounds of it. Flippy is the odd one out: he only speaks up at 14:15, and only if he’s sure price is about to flip across the strike against the leader. Each call is UP or DOWN, comes with a confidence score, and backs one of the Grokkys. We see exactly the same information and think equally hard; we just weigh it differently (Dash is bold and early, Zippy follows momentum, Mellow follows volume, Ripple reads the chart, Sage waits for confirmation, Flippy gambles on late flips). Scored on Kalshi’s real result. Tap “Why?” on any card for the details.</div>
+  <div id="callersTl"></div>
+  <div id="phaseBar" class="phbox"></div>
+  <div id="crowdBar" class="crbox"></div>
+  <div id="callersBody" class="grid cgrid">
+    <section class="cc" id="caller-dash" aria-label="Dash"></section>
+    <section class="cc" id="caller-zippy" aria-label="Zippy"></section>
+    <section class="cc" id="caller-mellow" aria-label="Mellow"></section>
+    <section class="cc" id="caller-ripple" aria-label="Ripple"></section>
+    <section class="cc" id="caller-sage" aria-label="Sage"></section>
+    <section class="cc" id="caller-flippy" aria-label="Flippy"></section>
+  </div>
+  <h3 class="sub3">📊 Callers’ scoreboard <span class="mut">· this phase, all time, and by beat</span></h3>
+  <div id="callersScore"></div>
+  <div class="mut tiny" style="font-size:12px;margin:6px 0">Later beats have less time left, so they’re naturally easier: the by-beat columns show that honestly. A call only counts if the page was open for it, nothing is back-filled, and “skipped: too fast” calls are never scored as losses.</div>
+  <div id="callersMarks"></div>
+  <div id="callersArch" class="archbox"></div>
+</section>
+
+<section class="card" id="cbCard">
+  <h2>⚖️ Check &amp; balance <span class="mut">· do the Grokkys and callers agree with the readings, and with each other?</span></h2>
+  <div id="cbBody" class="mut">Loading…</div>
+</section>
+
+<section class="card" id="chartCard">
+  <h2>📈 Bitcoin right now <span class="mut">· green candles are up moves, red are down moves · just for looking, no orders</span></h2>
+  <div class="row" style="gap:8px;margin-bottom:8px" id="pcTabs"><button class="small tfb on" data-tf="1m">1m</button><button class="small tfb" data-tf="5m">5m</button><button class="small tfb" data-tf="15m">15m</button><span class="mut" style="font-size:12px;margin-left:6px" id="pcReadout"></span></div>
+  <div class="pcwrap"><canvas id="pcChart" aria-label="BTC candlestick chart"></canvas></div>
+  <div class="mut" style="font-size:12px;margin-top:6px" id="pcNote">Fetching the candles for you…</div>
+</section>
+
+<section class="card" id="sigCard">
+  <h2>📊 What’s been happening lately <span class="mut">· the last 3 hours, real samples only, nothing filled in</span></h2>
+  <div class="mut" style="font-size:12.5px;margin-bottom:10px">These are the same readings Grokky 1 and I (Grokky 2) look at when we pick. Earlier tests found none of them predicted the next 15 minutes better than Kalshi’s own price, so enjoy them as context, not a crystal ball.</div>
+  <div class="sggrid">
+    <div class="sgbox"><h3>Large-trade flow by tier</h3><canvas id="sgFlow"></canvas><div class="n" id="sgFlowN"></div></div>
+    <div class="sgbox"><h3>Liquidations (OKX)</h3><canvas id="sgLiq"></canvas><div class="n" id="sgLiqN"></div></div>
+    <div class="sgbox"><h3>Kalshi order-book imbalance</h3><canvas id="sgBook"></canvas><div class="n" id="sgBookN"></div></div>
+    <div class="sgbox"><h3>Settlement gap (BRTI − strike)</h3><canvas id="sgGap"></canvas><div class="n" id="sgGapN"></div></div>
+    <div class="sgbox"><h3>Funding rate (OKX, history)</h3><canvas id="sgFund"></canvas><div class="n" id="sgFundN"></div></div>
+    <div class="sgbox"><h3>Open interest (OKX, sampled)</h3><canvas id="sgOi"></canvas><div class="n" id="sgOiN"></div></div>
+  </div>
+</section>
+
+<section class="card" id="gkCard">
+  <h2>🏆 Our scoreboard <span class="mut">· checked against Kalshi’s real result · fresh start on 2026-11-12</span></h2>
+  <div id="gkScore" class="mut">Loading…</div>
+  <div class="row" style="margin-top:8px"><button class="small" id="gkCsv">⬇ Export rounds CSV</button><span class="mut" style="font-size:12px">Click a finished round to see why each of us picked what we did. One of us is right every round, so this is a friendly head-to-head, not proof of skill.</span></div>
+</section>
+
+<section class="card" id="pmCard">
+  <h2>💭 When one of us gets it wrong <span class="mut">· told honestly, using only what was saved for that round</span></h2>
+  <div id="pmBody" class="mut">Loading…</div>
+</section>
+
+<section class="card" id="askCard">
+  <h2>💬 Ask me about Bitcoin <span class="mut">· friendly info only, not financial advice · I can’t place bets, orders or trades</span></h2>
+  <div class="row" style="margin-bottom:8px"><span id="askMode"></span><button class="small" id="askClear" style="margin-left:auto">Clear chat</button></div>
+  <div class="askbox">
+    <div id="askLog" aria-live="polite"></div>
+    <div id="askChips"><button class="small" type="button">Why did the last pick lose?</button><button class="small" type="button">What is the market doing right now?</button><button class="small" type="button">What do the Grokkys pick and why?</button><button class="small" type="button">How does Kalshi settle a window?</button><button class="small" type="button">What is a halving?</button><button class="small" type="button">Explain funding and liquidations</button></div>
+    <form id="askForm" autocomplete="off"><input id="askInput" type="text" maxlength="600" placeholder="Ask a Bitcoin or Kalshi question…" aria-label="Ask a question"><button class="up" id="askSend" type="submit">Ask</button></form>
+    <div class="mut" style="font-size:12px"><b>Built-in answers</b> come from this page’s live data and a fixed FAQ (no AI model). <b>AI mode</b>, once connected, sends your question, the last few chat turns and a compact snapshot of the board (prices, picks, flows — no account data) to a Cloudflare Worker running a Workers AI model; AI can be wrong. Every answer says which one produced it. Nothing here is financial advice and nothing here can place a bet.</div>
+  </div>
+</section>
+
+<div class="grid g2">
+  <section class="card" id="callCard">
+    <h2>🎯 The engine’s call for this window <span class="lockbadge" id="lockInfo"></span></h2>
+    <div class="row" style="gap:20px">
+      <div class="big" id="callDir">…</div>
+      <div class="kv"><b id="callConf">—</b><small>chance the called side is right (model estimate)</small></div>
+      <div class="kv"><b id="callWin">—</b><small>window (local time)</small></div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <div class="kv"><small>consensus open</small><b id="winOpen">—</b></div>
+      <div class="kv"><small>consensus price now</small><b id="nowPrice">—</b></div>
+      <div class="kv"><small>so far this window</small><b id="winMove">—</b></div>
+    </div>
+    <div class="mut" style="margin-top:10px;font-size:13px" id="lastGraded"></div>
+  </section>
+
+  <section class="card" id="betCard">
+    <h2>🪙 Try a play-money bet <span class="mut">· even payout, not real money</span></h2>
+    <div class="row" style="gap:20px">
+      <div class="kv"><small>balance</small><b id="bal">$1,000</b></div>
+      <div class="kv"><small>bets W / L</small><b id="betWL">0 / 0</b></div>
+      <div class="kv"><small>win rate</small><b id="betRate">—</b></div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <input type="number" id="betAmt" min="1" step="1" value="100" aria-label="Bet amount in play dollars">
+      <button class="small" data-pct="10">10%</button><button class="small" data-pct="25">25%</button><button class="small" data-pct="50">50%</button><button class="small" data-pct="100">Max</button>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button class="up" id="betUp">▲ Bet UP</button>
+      <button class="dn" id="betDown">▼ Bet DOWN</button>
+      <button class="small" id="resetBtn" style="margin-left:auto">Reset to $1,000</button>
+    </div>
+    <div class="mut" style="margin-top:8px;font-size:13px" id="betMsg"></div>
+  </section>
+</div>
+
+<section class="card" id="kalshiCard">
+  <h2>🎲 What Kalshi’s crowd thinks <span class="mut">· the “BTC up in next 15 mins?” market · odds are the crowd’s, not ours · look only, nothing is ordered</span></h2>
+  <div id="kalshiBody" class="mut">Loading Kalshi…</div>
+  <div class="chartbox" style="height:210px;margin-top:10px"><canvas id="kalshiChart"></canvas></div>
+</section>
+
+<section class="card" id="ctxCard">
+  <h2>🌍 The bigger picture <span class="mut">· background to think a call over · none of this feeds the engine · no orders</span></h2>
+  <div class="mut" style="font-size:12.5px;margin-bottom:10px">Earlier backtests found news, whale transfers, funding and order-book imbalance did <b>not</b> predict 15-minute moves beyond Kalshi’s own price. Treat these as background. Any box that cannot load says “unavailable” — nothing is guessed.</div>
+  <div class="ctxgrid">
+    <div class="mini" id="ctx-settle"><h3>Settlement gap (BRTI) <span class="cs pill">loading</span></h3><div class="cb mut">Loading…</div></div>
+    <div class="mini" id="ctx-book"><h3>Kalshi order book <span class="cs pill">loading</span></h3><div class="cb mut">Loading…</div></div>
+    <div class="mini" id="ctx-events"><h3>Upcoming high-impact events <span class="cs pill">loading</span></h3><div class="cb mut">Loading…</div></div>
+    <div class="mini" id="ctx-vol"><h3>Volatility regime <span class="cs pill">loading</span></h3><div class="cb mut">Loading…</div></div>
+    <div class="mini" id="ctx-liq"><h3>Liquidations <span class="cs pill">loading</span></h3><div class="cb mut">Loading…</div></div>
+    <div class="mini" id="ctx-whale"><h3>Whale transfers <span class="cs pill">loading</span></h3><div class="cb mut">Loading…</div></div>
+    <div class="mini" id="ctx-deriv"><h3>Funding · open interest · sentiment <span class="cs pill">loading</span></h3><div class="cb mut">Loading…</div></div>
+    <div class="mini" id="ctx-news"><h3>Bitcoin headlines <span class="cs pill">loading</span></h3><div class="cb mut">Loading…</div></div>
+  </div>
+</section>
+
+<section class="card" id="flowCard">
+  <h2>🐋 Big money moving <span class="mut">· large transfers &amp; trades of $25,000 or more · context only, none of it feeds the engine</span></h2>
+  <div class="mut" style="font-size:12.5px;margin-bottom:8px"><b>A quick heads-up from me:</b> On-chain items are large <b>transfers</b> seen in the Bitcoin mempool: the amount includes change sent back to the sender, and nothing tells us whether it is a buy, a sale or a wallet shuffle, so no direction is shown. Exchange items are real <b>trades</b> with the exchange-reported taker side. Everything is counted only while this page is open, so each total shows how long it was actually watched. Earlier backtests found large flows did not predict 15-minute moves beyond Kalshi’s price.</div>
+  <div id="flowStatus"></div>
+  <div id="flowSum" style="margin-top:10px"></div>
+  <div class="row" style="margin:12px 0 6px"><label class="mut" style="font-size:13px">Latest items <select id="flowKind"><option value="all">all types</option><option value="tx">on-chain transfers</option><option value="tr">exchange trades</option><option value="lq">liquidations</option></select></label><button class="small" id="flowCsv">⬇ Export CSV</button><button class="small" id="flowClear">Clear</button><span class="mut" style="font-size:12px" id="flowMeta"></span></div>
+  <div class="logwrap tw" id="flowList" style="max-height:340px"></div>
+</section>
+
+<section class="card">
+  <h2>🗳️ How each signal voted <span class="mut" id="sigMeta"></span></h2>
+  <div id="signals" class="mut">Loading…</div>
+</section>
+
+<div class="grid g2">
+  <section class="card">
+    <h2>⚙️ The engine’s track record</h2>
+    <div class="row" style="gap:22px" id="engRec"></div>
+  </section>
+  <section class="card">
+    <h2>Your play-money record <span class="mut" style="text-transform:none;letter-spacing:0">(since last reset)</span></h2>
+    <div class="row" style="gap:22px" id="usrRec"></div>
+  </section>
+</div>
+
+<section class="card">
+  <h2>🔌 Where the prices come from <span class="mut" id="srcMeta"></span></h2>
+  <div class="tw"><table id="srcTable"><thead><tr>
+    <th>Source</th><th class="l">Pair</th><th>Last price</th><th>vs median</th><th>15m change</th><th>Updated</th><th class="l">Status</th>
+  </tr></thead><tbody></tbody></table></div>
+  <div class="mut" style="font-size:12px;margin-top:8px">“15m change” = last <i>closed</i> 15-minute candle (price-only sources have no candles → “—”). USDT-quoted venues trade a hair away from USD venues; that gap is itself used as a signal.</div>
+</section>
+
+<section class="card">
+  <h2>🕒 15-minute closes, source by source</h2>
+  <div class="chartbox"><canvas id="priceChart"></canvas></div>
+  <div class="row" style="margin-top:8px"><button class="small" id="tvBtn">Load TradingView chart (third-party, optional)</button><span class="mut" style="font-size:12px">Not loaded by default, so nothing leaves your browser unless you click.</span></div>
+  <div id="tvBox" style="margin-top:8px"></div>
+</section>
+
+<section class="card">
+  <h2>📒 Every call so far</h2>
+  <div class="row" style="margin-bottom:8px"><button class="small" id="csvBtn">⬇ Export CSV</button><span class="mut" style="font-size:12px" id="logMeta"></span></div>
+  <div class="logwrap tw"><table id="logTable"><thead><tr>
+    <th class="l">Window</th><th class="l">Type</th><th>Call</th><th>Conf</th><th>Open</th><th>Close</th><th>Actual</th><th>Result</th><th>Your bet</th><th>Bet result</th>
+  </tr></thead><tbody></tbody></table></div>
+  <h2 style="margin-top:16px">Wins &amp; losses over time</h2>
+  <div class="chartbox" style="height:240px"><canvas id="wlChart"></canvas></div>
+</section>
+
+<section class="card howto">
+  <h2>🧭 How it works</h2>
+  <details open><summary>Plain-English version</summary>
+  <ol>
+    <li><b>Data.</b> Your browser asks free, keyless public APIs of many exchanges and price sites for BTC/USD (or BTC/USDT) 15-minute candles and spot prices. Only sources that actually answered are used; the table shows which ones did.</li>
+    <li><b>Consensus.</b> For each 15-minute candle, the median open and close across sources is the “consensus” — one bad feed can’t move it.</li>
+    <li><b>Call.</b> At each :00 / :15 / :30 / :45 (your local time) the engine looks only at candles that are already closed, scores five mean-reversion signals, and locks an UP or DOWN call for the next 15 minutes. Locked calls are never edited.</li>
+    <li><b>Grade.</b> At the next boundary the call is graded against the consensus candle: close above open = UP, below = DOWN, exactly equal = push (ignored).</li>
+    <li><b>No backfill.</b> This page only runs while it’s open and only logs calls it actually locked. Since the 2026-11-12 reset there is no replay of missed windows: the log, the Grokky tally and your play-money record all started from zero.</li>
+    <li><b>Grokky 1 vs 2.</b> Two paper-only pickers split every window: Grokky 1 takes the engine’s side, Grokky 2 the opposite one. Each is scored against Kalshi’s real settlement (final value vs strike), so exactly one is right per round, including “no edge” rounds.</li>
+    <li><b>Bets.</b> Bet play money on the open call at even payout. Bets settle automatically when the call is graded. Everything is saved in this browser’s localStorage only — no accounts, no servers, no ads, no tracking.</li>
+  </ol>
+  <p class="mut"><b>Engine v2 (this version).</b> A 150-day backtest on real public candles showed the old trend-following engine called the wrong way more often than the right way (48.8% hit rate, and its “confidence” was backwards: its ≥80%-confidence calls hit 46.8%). Short-term BTC tends to <i>give back</i> overshoots, so v2 fades them: 1-hour vol-scaled overshoot, last-candle overshoot, RSI(14) extremes, where the last candle closed in its range, and the USD-vs-USDT premium. The coefficients were fitted only on data before 2026-09-25 and then frozen; on the 47 days after that (never used for fitting) it hit 51.8% vs 48.7% for v1. That is a small edge, not a money machine — expect long losing streaks (up to ~10 in a row in the test period). “Chance the called side is right” is the model’s own probability and is honestly only ~50–56%. “Conviction” calls are the stronger half of the signals (backtest 53.1% out-of-sample). Details and caveats: backtest/README.md.</p>
+  </details>
+</section>
+
+<section class="card disc"><b>Disclaimer:</b> For fun only. Not financial advice. Play money only — no real money, exchange accounts, or orders are involved. Predictions are experimental and often wrong. Data comes from third-party public APIs and may be delayed, wrong or unavailable.</section>
+<footer>Bitcoin Pulse Board · static page · no ads · no sign-in · no data collection · data stays in your browser</footer>
+</div>
+
+<script>
+/* ONE-TIME RESET ("Grokky rebuild", 2026-11-12): clears the old call history, play-money bets, the legacy v1 log and the old paper order-book log from THIS browser,
+   then the board starts fresh under new storage keys (pulseboard2.v2, pulseboard2.obook.v2, pulseboard2.flows.v1). Runs before any other script reads storage. */
+(function(){try{var F='pulseboard2.cleared.2026-11-12';if(!localStorage.getItem(F)){['pulseboard2.v1','pulseboard2.obook.v1'].forEach(function(k){localStorage.removeItem(k)});localStorage.setItem(F,String(Date.now()))}}catch(e){}})();
+</script>
+<script src="chart.umd.min.js"></script>
+<script src="ui.js"></script>
+<script src="engine.js"></script>
+<script>window.KALSHI_PROXY='https://kalshi-relay.rydawg2026.workers.dev'; /* read-only Cloudflare Worker, see tools/kalshi-proxy-worker.js */</script>
+<script src="kalshi.js"></script>
+<script src="flows.js"></script>
+<script src="context.js"></script>
+<script src="charts.js"></script>
+<script src="grokky.js"></script>
+<script src="indicators.js"></script>
+<script src="archive.js"></script>
+<script src="callers.js"></script>
+<script>window.ASK_AI_URL='https://pulse-ask-ai.rydawg2026.workers.dev/ask'; /* the pulse-ask-ai Worker (Workers AI, capped 50 questions/day) — see tools/ask-ai-worker/DEPLOY.md. If it errors or hits its cap the page falls back to built-in answers. Set to '' to turn AI off. */</script>
+<script src="ask.js"></script>
+<script>
+(function(){
+'use strict';
+var Q=900; // 15 minutes in seconds
+var START_BAL=1000, MIN_HIST=100, MIN_SRC=3, CANDLES=300;
+
+/* ---------- helpers ---------- */
+function $(id){return document.getElementById(id)}
+function num(x){return typeof x==='number'?x:parseFloat(x)}
+function median(a){var s=a.filter(isFinite).slice().sort(function(x,y){return x-y});if(!s.length)return NaN;var m=s.length>>1;return s.length%2?s[m]:(s[m-1]+s[m])/2}
+function mean(a){return a.reduce(function(x,y){return x+y},0)/(a.length||1)}
+function std(a){var m=mean(a);return Math.sqrt(mean(a.map(function(x){return (x-m)*(x-m)})))}
+function clamp(x,a,b){return Math.max(a,Math.min(b,x))}
+function fmtP(x){return isFinite(x)?'$'+x.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):'—'}
+function fmtM(x){return (x<0?'-':'')+'$'+Math.abs(x).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:2})}
+function pct(x,d){return isFinite(x)?(x>=0?'+':'')+(x*100).toFixed(d==null?2:d)+'%':'—'}
+function hhmm(t){return new Date(t*1000).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}
+function hhmmss(t){return new Date(t*1000).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'})}
+function dhm(t){var d=new Date(t*1000);return d.toLocaleDateString([], {month:'short',day:'numeric'})+' '+hhmm(t)}
+function nowS(){return Math.floor(Date.now()/1000)}
+function winStart(t){return Math.floor(t/Q)*Q}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+
+/* ---------- storage (localStorage only) ---------- */
+var memOnly=false, state;
+function freshState(){return {v:2,calls:{},groks:{},resetAt:0}}
+function load(){try{var s=JSON.parse(localStorage.getItem('pulseboard2.v2')||'null');if(s&&s.calls){if(!s.groks)s.groks={};return s}}catch(e){}return freshState()}
+function save(){try{localStorage.setItem('pulseboard2.v2',JSON.stringify(state))}catch(e){memOnly=true;banner('Browser storage is unavailable, so your log and bets will not persist after closing this page.')}}
+function banner(msg){var b=$('banner');b.textContent=msg;b.style.display=msg?'block':'none'}
+try{localStorage.setItem('pulseboard2.test','1');localStorage.removeItem('pulseboard2.test')}catch(e){memOnly=true}
+state=load();
+if(memOnly)banner('Browser storage is unavailable, so your log and bets will not persist after closing this page.');
+
+/* ---------- sources ---------- */
+function J(u,ms){var c=new AbortController();var to=setTimeout(function(){c.abort()},ms||12000);
+  return fetch(u,{signal:c.signal,cache:'no-store'}).then(function(r){clearTimeout(to);if(!r.ok)throw new Error('HTTP '+r.status);return r.json()},function(e){clearTimeout(to);throw e})}
+function cs(t,o,h,l,c,v){return {t:t,o:num(o),h:num(h),l:num(l),c:num(c),v:num(v)}}
+function binLike(u){return function(){return J(u).then(function(d){return d.map(function(k){return cs(k[0]/1000,k[1],k[2],k[3],k[4],k[5])})})}}
+var SOURCES=[
+ {id:'coinbase',name:'Coinbase',pair:'BTC-USD',q:'USD',home:'candles',fn:function(){return J('https://api.exchange.coinbase.com/products/BTC-USD/candles?granularity=900').then(function(d){return d.map(function(k){return cs(k[0],k[3],k[2],k[1],k[4],k[5])})})}},
+ {id:'kraken',name:'Kraken',pair:'XBT/USD',q:'USD',fn:function(){return J('https://api.kraken.com/0/public/OHLC?pair=XBTUSD&interval=15').then(function(d){var k=Object.keys(d.result).filter(function(x){return Array.isArray(d.result[x])})[0];return d.result[k].slice(-CANDLES).map(function(r){return cs(r[0],r[1],r[2],r[3],r[4],r[6])})})}},
+ {id:'binanceus',name:'Binance.US',pair:'BTCUSD',q:'USD',fn:binLike('https://api.binance.us/api/v3/klines?symbol=BTCUSD&interval=15m&limit='+CANDLES)},
+ {id:'binancevision',name:'Binance (global, market-data host)',pair:'BTCUSDT',q:'USDT',fn:binLike('https://data-api.binance.vision/api/v3/klines?symbol=BTCUSDT&interval=15m&limit='+CANDLES)},
+ {id:'okx',name:'OKX',pair:'BTC-USDT',q:'USDT',fn:function(){return J('https://www.okx.com/api/v5/market/candles?instId=BTC-USDT&bar=15m&limit=300').then(function(d){return d.data.map(function(k){return cs(k[0]/1000,k[1],k[2],k[3],k[4],k[5])})})}},
+ {id:'cryptocom',name:'Crypto.com',pair:'BTC_USDT',q:'USDT',fn:function(){return J('https://api.crypto.com/exchange/v1/public/get-candlestick?instrument_name=BTC_USDT&timeframe=M15&count=300').then(function(d){return d.result.data.map(function(k){return cs(k.t/1000,k.o,k.h,k.l,k.c,k.v)})})}},
+ {id:'huobi',name:'HTX (Huobi)',pair:'btcusdt',q:'USDT',fn:function(){return J('https://api.huobi.pro/market/history/kline?symbol=btcusdt&period=15min&size=300').then(function(d){if(d.status!=='ok')throw new Error('status '+d.status);return d.data.map(function(k){return cs(k.id,k.open,k.high,k.low,k.close,k.amount)})})}},
+ {id:'gate',name:'Gate.io',pair:'BTC_USDT',q:'USDT',fn:function(){return J('https://api.gateio.ws/api/v4/spot/candlesticks?currency_pair=BTC_USDT&interval=15m&limit=300').then(function(d){return d.map(function(k){return cs(+k[0],k[5],k[3],k[4],k[2],k[6])})})}},
+ {id:'bitget',name:'Bitget',pair:'BTCUSDT',q:'USDT',fn:function(){return J('https://api.bitget.com/api/v2/spot/market/candles?symbol=BTCUSDT&granularity=15min&limit=300').then(function(d){return d.data.map(function(k){return cs(k[0]/1000,k[1],k[2],k[3],k[4],k[5])})})}},
+ // price-only sources
+ {id:'gemini',name:'Gemini',pair:'BTCUSD',q:'USD',price:true,fn:function(){return J('https://api.gemini.com/v1/pubticker/btcusd').then(function(d){return num(d.last)})}},
+ {id:'coingecko',name:'CoinGecko',pair:'BTC/USD',q:'USD',price:true,fn:function(){return J('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd').then(function(d){return d.bitcoin.usd})}},
+ {id:'coinpaprika',name:'CoinPaprika',pair:'BTC/USD',q:'USD',price:true,fn:function(){return J('https://api.coinpaprika.com/v1/tickers/btc-bitcoin').then(function(d){return d.quotes.USD.price})}},
+ {id:'coinlore',name:'Coinlore',pair:'BTC/USD',q:'USD',price:true,fn:function(){return J('https://api.coinlore.net/api/ticker/?id=90').then(function(d){return num(d[0].price_usd)})}},
+ {id:'blockchain',name:'Blockchain.com',pair:'BTC/USD',q:'USD',price:true,fn:function(){return J('https://blockchain.info/ticker').then(function(d){return d.USD.last})}},
+ {id:'mempool',name:'mempool.space',pair:'BTC/USD',q:'USD',price:true,fn:function(){return J('https://mempool.space/api/v1/prices').then(function(d){return d.USD})}}
+];
+var S={}; // runtime per source
+SOURCES.forEach(function(s){S[s.id]={def:s,ok:false,err:'not fetched yet',candles:[],map:{},price:NaN,updated:0}});
+var lastRefresh=0, refreshing=false, CONS={}, ctx=null;
+
+function fetchSource(s){
+  var t0=Date.now(),r=S[s.id];
+  return s.fn().then(function(d){
+    if(s.price){ if(!isFinite(d)||d<1000)throw new Error('bad price'); r.price=d; r.candles=[]; r.map={}; }
+    else{
+      var arr=d.filter(function(k){return isFinite(k.t)&&isFinite(k.o)&&isFinite(k.c)&&k.c>1000}).sort(function(a,b){return a.t-b.t});
+      if(arr.length<10)throw new Error('too few candles');
+      if(arr[arr.length-1].t<winStart(nowS())-Q)throw new Error('stale candles ('+Math.round((nowS()-arr[arr.length-1].t)/60)+' min old)');
+      r.candles=arr;r.map={};arr.forEach(function(k){r.map[k.t]=k});
+      r.price=arr[arr.length-1].c;
+    }
+    r.ok=true;r.err='';r.updated=nowS();r.ms=Date.now()-t0;
+  }).catch(function(e){r.ok=false;r.err=(e&&e.name==='AbortError')?'timeout':((e&&e.message)||'error').replace('Failed to fetch','blocked/CORS/network');r.ms=Date.now()-t0});
+}
+
+/* ---------- consensus + prediction engine: see engine.js (v2 mean-reversion engine; v1 kept there for the backtest) ---------- */
+var PE=window.PulseEngine;
+function buildConsensus(now){
+  var ok=SOURCES.filter(function(s){return S[s.id].ok&&!s.price});
+  return PE.buildConsensus(ok,S,now,MIN_SRC);
+}
+function predictAt(W,C,okSrc){return PE.predictV2(W,C,okSrc,S)}
+
+/* ---------- calls, grading, bets ---------- */
+function gradeCall(c,C){
+  if(c.res)return;
+  var k=C.cons[c.W];if(!k||c.W+Q>nowS()+1)return;
+  c.open=k.o;c.close=k.c;
+  c.actual=k.c>k.o?'UP':k.c<k.o?'DOWN':'FLAT';
+  c.res=c.actual==='FLAT'?'push':(c.actual===c.dir?'win':'loss');
+  if(c.bet&&!c.bet.res){
+    if(c.res==='push'){c.bet.res='push';c.bet.pnl=0}
+    else if(c.bet.side===c.actual){c.bet.res='win';c.bet.pnl=c.bet.amt}
+    else{c.bet.res='loss';c.bet.pnl=-c.bet.amt}
+  }
+}
+function makeCall(W,kind,C,okSrc){
+  var p=predictAt(W,C,okSrc);if(!p)return null;
+  var c={W:W,eng:'v2',strong:!!p.strong,noedge:!!p.noedge,dir:p.dir,conf:p.conf,score:p.score,signals:p.signals.map(function(s){return {k:s.k,name:s.name,w:s.w,vote:s.vote,desc:s.desc}}),kind:kind,madeAt:nowS(),nSrc:p.nSrc,basis:p.basis};
+  state.calls[W]=c;return c;
+}
+function runEngine(){
+  var now=nowS(),C=buildConsensus(now);ctx=C;
+  if(C.ts.length<MIN_HIST||C.ok.length<MIN_SRC){return}
+  var W0=winStart(now),calls=state.calls;
+  // live call for the current window
+  if(!calls[W0])makeCall(W0,'live',C,C.ok);
+  // (no backfill since the 2026-11-12 reset: history only contains calls actually locked while this page was open)
+  if(window.GrokkyPanel&&calls[W0])GrokkyPanel.lock(W0,calls[W0]);
+  // grade whatever is finished
+  Object.keys(calls).forEach(function(w){gradeCall(calls[w],C)});
+  // prune very old (keep latest 2000)
+  var ks=Object.keys(calls).map(Number).sort(function(a,b){return a-b});
+  while(ks.length>2000){delete calls[ks.shift()]}
+  save();
+}
+
+function stats(){
+  var ks=Object.keys(state.calls).map(Number).sort(function(a,b){return a-b}),o={all:{w:0,l:0},live:{w:0,l:0},bf:{w:0,l:0},v2:{w:0,l:0},v2s:{w:0,l:0},kl:{w:0,l:0},kb:{w:0,l:0},kne:{w:0,l:0},bw:0,bl:0,bp:0,pnl:0,bal:START_BAL,ks:ks};
+  ks.forEach(function(w){var c=state.calls[w];
+    if(c.res==='win'||c.res==='loss'){var s=c.kind==='live'?o.live:o.bf;var win=c.res==='win';if(win){o.all.w++;s.w++}else{o.all.l++;s.l++}
+      var e=o.v2;if(win)e.w++;else e.l++;if(c.strong){if(win)o.v2s.w++;else o.v2s.l++}}
+    if(c.kres){var ks2=c.kind==='live'?o.kl:o.kb;if(c.kres==='win')ks2.w++;else ks2.l++;if(c.noedge){if(c.kres==='win')o.kne.w++;else o.kne.l++}}
+    if(c.bet&&c.bet.placedAt>=state.resetAt&&c.bet.res){ if(c.bet.res==='win')o.bw++;else if(c.bet.res==='loss')o.bl++;else o.bp++;o.pnl+=c.bet.pnl}});
+  o.bal=START_BAL+o.pnl;return o;
+}
+function openBetAmt(){var c=state.calls[winStart(nowS())];return(c&&c.bet&&!c.bet.res&&c.bet.placedAt>=state.resetAt)?c.bet.amt:0}
+
+/* ---------- rendering ---------- */
+var priceChart=null,wlChart=null;
+var COLORS=['#5aa9ff','#2fd18b','#ffb454','#c9a3ff','#ff7eb6','#6ee7e7','#e6db74','#ff8a65','#9ccc65','#4dd0e1','#f48fb1','#b0bec5','#ffd54f','#a1887f'];
+function render(){
+  var now=nowS(),W0=winStart(now),cur=state.calls[W0],st=stats(),C=ctx;
+  // current call
+  if(cur){
+    $('callDir').textContent=(cur.dir==='UP'?'▲ UP':'▼ DOWN');$('callDir').className='big '+(cur.dir==='UP'?'up-t':'dn-t');
+    $('callConf').textContent=cur.conf+'%'+(cur.eng==='v2'?(cur.noedge?' · NO EDGE — sit out':cur.strong?' · conviction':' · lean'):'');
+    $('callDir').style.opacity=cur.noedge?.45:1;
+    $('callWin').textContent=hhmm(cur.W)+' – '+hhmm(cur.W+Q);
+    var late=cur.madeAt-cur.W;
+    $('lockInfo').innerHTML='🔒 locked '+hhmmss(cur.madeAt)+(late>90?' (page opened mid-window)':'');
+  }else{
+    $('callDir').textContent='…';$('callDir').className='big mut';$('callConf').textContent='—';$('callWin').textContent=hhmm(W0)+' – '+hhmm(W0+Q);
+    $('lockInfo').textContent=(C&&C.ok&&C.ok.length<MIN_SRC)?'(waiting for ≥3 candle sources)':'(waiting for data)';
+  }
+  // open/price
+  var okAll=SOURCES.filter(function(s){return S[s.id].ok});
+  var prices=okAll.map(function(s){return S[s.id].price}),med=median(prices);
+  var ko=C&&C.ok&&C.ok.length?median(C.ok.map(function(s){var k=S[s.id].map[W0];return k?k.o:NaN})):NaN;
+  $('winOpen').textContent=fmtP(ko);$('nowPrice').textContent=fmtP(med);
+  var mv=(med-ko)/ko;$('winMove').textContent=isFinite(mv)?pct(mv,3)+(cur&&isFinite(mv)?(((mv>0&&cur.dir==='UP')||(mv<0&&cur.dir==='DOWN'))?' ✓ on track':' ✗ off track'):''):'—';
+  // last graded
+  var lg=st.ks.filter(function(w){return state.calls[w].res&&state.calls[w].kind==='live'}).pop();
+  $('lastGraded').textContent=lg?('Last graded live call ('+hhmm(lg)+'): '+state.calls[lg].dir+' → actual '+state.calls[lg].actual+' → '+state.calls[lg].res.toUpperCase()):'No live call graded yet — first one grades at the next 15-minute boundary.';
+  // signals
+  var sgEl=$('signals');
+  if(cur){
+    sgEl.innerHTML=cur.signals.map(function(s){
+      var w=Math.abs(s.vote)*50,col=s.vote>=0?'var(--up)':'var(--dn)',left=s.vote>=0?50:50-w;
+      return '<div class="sig"><div class="nm">'+esc(s.name)+'<small>'+esc(s.desc)+'</small></div><div class="bar"><i style="left:'+left+'%;width:'+w+'%;background:'+col+'"></i></div><div class="'+(s.vote>=0?'up-t':'dn-t')+'" style="text-align:right">'+(s.vote>=0?'+':'')+s.vote.toFixed(2)+'</div><div class="w mut" style="text-align:right">'+(cur.eng==='v2'?'coef '+s.w.toFixed(2):'w '+Math.round(s.w*100)+'%')+'</div></div>';
+    }).join('');
+    $('sigMeta').textContent=(cur.eng==='v2'?'logit '+(cur.score>=0?'+':'')+cur.score.toFixed(3)+' → '+cur.dir+' ('+cur.conf+'%'+(cur.noedge?', NO EDGE: signals cancel out (backtest: coin flip), sit this one out':cur.strong?', conviction call':', lean — below the conviction line')+')':'score '+(cur.score>=0?'+':'')+cur.score.toFixed(3)+' → '+cur.dir)+' · '+cur.nSrc+' sources in consensus';
+  }else{sgEl.textContent='Waiting for data…';$('sigMeta').textContent=''}
+  // records
+  function rec(w,l,label){var n=w+l;return '<div class="kv"><small>'+label+'</small><b>'+w+' W / '+l+' L</b><small>'+(n?(w/n*100).toFixed(1)+'% win rate':'no graded calls')+'</small></div>'}
+  $('engRec').innerHTML=rec(st.v2.w,st.v2.l,'Engine · all calls since reset')+rec(st.v2s.w,st.v2s.l,'v2 · conviction calls only')+rec(st.live.w,st.live.l,'Live only (any engine)')+(st.kl.w+st.kl.l+st.kb.w+st.kb.l?rec(st.kl.w,st.kl.l,'Engine calls vs Kalshi settlement')+(st.kne.w+st.kne.l?rec(st.kne.w,st.kne.l,'…of which “no edge” calls'):''):'');
+  var bn=st.bw+st.bl;
+  $('usrRec').innerHTML='<div class="kv"><small>Balance</small><b>'+fmtM(st.bal)+'</b><small>'+(st.pnl>=0?'+':'')+fmtM(st.pnl)+' vs $1,000</small></div><div class="kv"><small>Bets won / lost</small><b>'+st.bw+' / '+st.bl+'</b><small>'+(st.bp?st.bp+' push':'')+'</small></div><div class="kv"><small>Win rate</small><b>'+(bn?(st.bw/bn*100).toFixed(1)+'%':'—')+'</b></div>';
+  $('bal').textContent=fmtM(st.bal);$('betWL').textContent=st.bw+' / '+st.bl;$('betRate').textContent=bn?(st.bw/bn*100).toFixed(1)+'%':'—';
+  renderBetControls(cur,st);
+  var cl=C&&C.ts?C.ts.slice(-120):[],lc=cl.length?C.cons[cl[cl.length-1]]:null;
+  window.__pulseNow={med:med,winOpen:ko,call:cur,calls:state.calls,closes:cl.map(function(t){return C.cons[t].c}),prem:lc&&isFinite(lc.usd)&&isFinite(lc.usdt)?lc.usd/lc.usdt-1:NaN};
+  renderSources(med);renderLog(st);renderCharts(st);if(window.GrokkyPanel)GrokkyPanel.update();if(window.KalshiPanel&&window.__kalshiReady)window.KalshiPanel.rerender();
+}
+function renderBetControls(cur,st){
+  var avail=st.bal-0,can=!!cur&&!(cur.bet&&cur.bet.placedAt>=state.resetAt)&&cur.W+Q>nowS()&&avail>=1;
+  $('betUp').disabled=!can;$('betDown').disabled=!can;
+  var m=$('betMsg');
+  if(!cur)m.textContent='Waiting for the first call of this window…';
+  else if(cur.bet&&cur.bet.placedAt>=state.resetAt)m.textContent='Your bet: '+fmtM(cur.bet.amt)+' on '+cur.bet.side+' for '+hhmm(cur.W)+'–'+hhmm(cur.W+Q)+(cur.bet.res?' → '+cur.bet.res.toUpperCase():' (settles at '+hhmm(cur.W+Q)+')');
+  else if(avail<1)m.textContent='You are out of play money — hit “Reset to $1,000”.';
+  else m.textContent='One bet per window. You can bet either side — it does not have to match the engine.';
+}
+function renderSources(med){
+  var tb=document.querySelector('#srcTable tbody'),rows=[],okN=0;
+  SOURCES.forEach(function(s){var r=S[s.id];if(r.ok)okN++;
+    var chg='—';if(r.ok&&!s.price){var cl=r.candles.filter(function(k){return k.t+Q<=nowS()+1});if(cl.length){var k=cl[cl.length-1];chg=pct(k.c/k.o-1)}}
+    var dev=r.ok&&isFinite(med)?(r.price-med)/med:NaN;
+    rows.push('<tr><td>'+esc(s.name)+(s.price?' <span class="mut">(price only)</span>':'')+'</td><td class="l mut">'+esc(s.pair)+'</td><td>'+(r.ok?fmtP(r.price):'—')+'</td><td class="'+(dev>0?'up-t':dev<0?'dn-t':'')+'">'+(r.ok?pct(dev,3):'—')+'</td><td class="'+(chg[0]==='+'?'up-t':chg[0]==='-'?'dn-t':'')+'">'+chg+'</td><td>'+(r.updated?hhmmss(r.updated):'—')+'</td><td class="l">'+(r.ok?'<span class="pill ok">ok</span>':'<span class="pill bad" title="'+esc(r.err)+'">failed</span> <span class="mut" style="font-size:11px">'+esc(r.err)+'</span>')+'</td></tr>');
+  });
+  tb.innerHTML=rows.join('');
+  $('srcMeta').textContent=okN+' of '+SOURCES.length+' reachable · median '+fmtP(med);
+}
+function renderLog(st){
+  var hide=false,rows=[];
+  var ks=st.ks.slice().reverse();var shown=0;
+  ks.forEach(function(w){var c=state.calls[w];if(hide&&c.kind==='backfilled')return;if(shown>=300)return;shown++;
+    var b=c.bet&&c.bet.placedAt>=state.resetAt?c.bet:null,old=c.bet&&!b;
+    var res=c.res?(c.res==='win'?'<span class="up-t">✔ correct</span>':c.res==='loss'?'<span class="dn-t">✘ wrong</span>':'<span class="mut">push</span>'):'<span class="mut">open…</span>';
+    rows.push('<tr><td class="l">'+dhm(w)+'–'+hhmm(w+Q)+'</td><td class="l"><span class="pill '+(c.kind==='live'?'lv':'bf')+'">'+c.kind+'</span></td><td class="'+(c.dir==='UP'?'up-t':'dn-t')+'">'+c.dir+'</td><td>'+c.conf+'%</td><td>'+(c.open?fmtP(c.open):'—')+'</td><td>'+(c.close?fmtP(c.close):'—')+'</td><td>'+(c.actual||'—')+'</td><td>'+res+'</td><td>'+(b?b.side+' '+fmtM(b.amt):old?'<span class="mut">(before reset)</span>':'—')+'</td><td>'+(b?(b.res?'<span class="'+(b.res==='win'?'up-t':b.res==='loss'?'dn-t':'mut')+'">'+b.res+' '+(b.pnl>=0?'+':'')+fmtM(b.pnl)+'</span>':'<span class="mut">pending</span>'):'—')+'</td></tr>');
+  });
+  document.querySelector('#logTable tbody').innerHTML=rows.join('')||'<tr><td class="l mut" colspan="10">No calls yet.</td></tr>';
+  $('logMeta').textContent=st.ks.length+' calls stored in this browser'+(st.ks.length>shown&&shown>=300?' (showing latest 300; CSV has all)':'');
+}
+function renderCharts(st){
+  if(typeof Chart==='undefined')return;
+  var C=ctx;
+  if(C&&C.ok.length){
+    var ts=C.ts.slice(-48),labels=ts.map(function(t){return hhmm(t)});
+    var ds=C.ok.map(function(s,i){return {label:s.name.replace(/ \(.*\)/,''),data:ts.map(function(t){var k=S[s.id].map[t];return k?k.c:null}),borderColor:COLORS[i%COLORS.length],borderWidth:1,pointRadius:0,tension:.2,spanGaps:true}});
+    ds.push({label:'Consensus median',data:ts.map(function(t){return C.cons[t].c}),borderColor:'#ffffff',borderWidth:3,pointRadius:0,tension:.2});
+    if(priceChart){priceChart.data.labels=labels;priceChart.data.datasets=ds;priceChart.update('none')}
+    else priceChart=new Chart($('priceChart'),{type:'line',data:{labels:labels,datasets:ds},options:{responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:false},plugins:{legend:{labels:{color:'#c9b8a8',boxWidth:10,font:{size:10}}}},scales:{x:{ticks:{color:'#c9b8a8',maxTicksLimit:8},grid:{color:'#3d3027'}},y:{ticks:{color:'#c9b8a8'},grid:{color:'#3d3027'}}}}});
+  }
+  var lab=[],ew=[],el=[],bw=[],bl=[],a=0,b=0,c=0,d=0;
+  st.ks.forEach(function(w){var k=state.calls[w];if(!k.res||k.res==='push')return;
+    if(k.res==='win')a++;else b++;
+    if(k.bet&&k.bet.placedAt>=state.resetAt&&k.bet.res==='win')c++;else if(k.bet&&k.bet.placedAt>=state.resetAt&&k.bet.res==='loss')d++;
+    lab.push(hhmm(w));ew.push(a);el.push(b);bw.push(c);bl.push(d)});
+  var wd=[{label:'Engine wins',data:ew,borderColor:'#2fd18b',pointRadius:0,borderWidth:2},{label:'Engine losses',data:el,borderColor:'#ff5d73',pointRadius:0,borderWidth:2},{label:'Your bet wins',data:bw,borderColor:'#5aa9ff',borderDash:[5,3],pointRadius:0,borderWidth:2},{label:'Your bet losses',data:bl,borderColor:'#ffb454',borderDash:[5,3],pointRadius:0,borderWidth:2}];
+  if(wlChart){wlChart.data.labels=lab;wlChart.data.datasets=wd;wlChart.update('none')}
+  else wlChart=new Chart($('wlChart'),{type:'line',data:{labels:lab,datasets:wd},options:{responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{labels:{color:'#c9b8a8',boxWidth:10,font:{size:11}}}},scales:{x:{ticks:{color:'#c9b8a8',maxTicksLimit:8},grid:{color:'#3d3027'}},y:{beginAtZero:true,ticks:{color:'#c9b8a8',precision:0},grid:{color:'#3d3027'}}}}});
+}
+
+/* ---------- actions ---------- */
+function placeBet(side){
+  var now=nowS(),W0=winStart(now),cur=state.calls[W0];if(!cur||cur.bet&&cur.bet.placedAt>=state.resetAt)return;
+  var amt=Math.round(parseFloat($('betAmt').value)*100)/100,st=stats();
+  if(!isFinite(amt)||amt<1){$('betMsg').textContent='Enter an amount of at least $1.';return}
+  if(amt>st.bal){$('betMsg').textContent='You only have '+fmtM(st.bal)+'.';return}
+  cur.bet={side:side,amt:amt,placedAt:now,priceAt:median(SOURCES.filter(function(s){return S[s.id].ok}).map(function(s){return S[s.id].price}))};
+  save();render();
+}
+function resetBets(){
+  if(!confirm('Reset play-money balance to $1,000 and clear your bet record? (The prediction log is kept.)'))return;
+  state.resetAt=nowS();
+  Object.keys(state.calls).forEach(function(w){var c=state.calls[w];if(c.bet&&!c.bet.res&&c.W+Q>nowS())delete c.bet});
+  save();render();
+}
+function csvExport(){
+  var h=['window_start_local','window_end_local','window_start_unix','type','call','confidence_pct','score','open','close','actual','engine_result','bet_side','bet_amount','bet_result','bet_pnl','bet_counted_in_current_record','engine','conviction','no_edge','vs_kalshi_settlement','kalshi_expiration_value'];
+  var rows=[h.join(',')];
+  Object.keys(state.calls).map(Number).sort(function(a,b){return a-b}).forEach(function(w){var c=state.calls[w],b=c.bet||{};
+    rows.push([new Date(w*1000).toLocaleString(),new Date((w+Q)*1000).toLocaleString(),w,c.kind,c.dir,c.conf,(c.score||0).toFixed(4),c.open!=null?c.open.toFixed(2):'',c.close!=null?c.close.toFixed(2):'',c.actual||'',c.res||'',b.side||'',b.amt!=null?b.amt:'',b.res||'',b.pnl!=null?b.pnl:'',c.bet?(c.bet.placedAt>=state.resetAt?'yes':'no'):'',c.eng||'v2',c.eng==='v2'?(c.strong?'yes':'no'):'',c.eng==='v2'?(c.noedge?'yes':'no'):'',c.kres||'',c.kexp!=null&&isFinite(c.kexp)?c.kexp:''].map(function(x){return '"'+String(x).replace(/"/g,'""')+'"'}).join(','))});
+  var blob=new Blob([rows.join('\n')],{type:'text/csv'}),a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download='bitcoin-pulse-log.csv';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},500);
+}
+function refresh(){
+  if(refreshing)return Promise.resolve();refreshing=true;$('refreshBtn').disabled=true;$('refreshBtn').textContent='⟳ Refreshing…';
+  return Promise.all(SOURCES.map(fetchSource)).then(function(){
+    lastRefresh=nowS();var okN=SOURCES.filter(function(s){return S[s.id].ok}).length;
+    if(okN<MIN_SRC)banner('Only '+okN+' source(s) reachable right now — need at least '+MIN_SRC+' with candles to make a call. Check your connection and refresh.');else if(!memOnly)banner('');
+    runEngine();render();
+  }).catch(function(e){banner('Refresh error: '+e.message)}).then(function(){refreshing=false;$('refreshBtn').disabled=false;$('refreshBtn').textContent='⟳ Refresh now'});
+}
+
+/* ---------- scheduler: refresh at :00/:15/:30/:45 local (+5s for candles to finalise) ---------- */
+var nextAt=0,timer=null;
+function schedule(){
+  var now=Date.now(),nb=(Math.floor(now/(Q*1000))+1)*Q*1000;nextAt=nb;
+  clearTimeout(timer);timer=setTimeout(function(){refresh().then(schedule)},nb-now+5000);
+}
+function tick(){
+  var left=Math.max(0,Math.ceil((nextAt-Date.now())/1000)),m=Math.floor(left/60),s=left%60;
+  $('countdown').textContent=(m<10?'0':'')+m+':'+(s<10?'0':'')+s;
+  // keep open-window bits fresh without refetching
+  var cur=state.calls[winStart(nowS())];renderBetControls(cur,stats());if(window.GrokkyPanel)GrokkyPanel.update();if(window.CallersPanel)CallersPanel.update();
+  if(!refreshing&&document.visibilityState==='visible'&&!cur&&Date.now()-lastRefresh*1000>60000&&lastRefresh)refresh();
+}
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'&&lastRefresh&&winStart(nowS())>winStart(lastRefresh)){refresh();schedule()}});
+
+/* ---------- wire up ---------- */
+$('refreshBtn').onclick=function(){refresh()};
+$('betUp').onclick=function(){placeBet('UP')};$('betDown').onclick=function(){placeBet('DOWN')};
+$('resetBtn').onclick=resetBets;$('csvBtn').onclick=csvExport;
+Array.prototype.forEach.call(document.querySelectorAll('[data-pct]'),function(b){b.onclick=function(){var st=stats();$('betAmt').value=Math.max(1,Math.floor(st.bal*b.getAttribute('data-pct')/100))}});
+$('tvBtn').onclick=function(){
+  var box=$('tvBox');box.innerHTML='<div class="tradingview-widget-container"><div id="tvw"></div></div>';
+  var s=document.createElement('script');s.src='https://s3.tradingview.com/tv.js';s.onload=function(){new TradingView.widget({container_id:'tvw',symbol:'COINBASE:BTCUSD',interval:'15',theme:'dark',autosize:false,width:'100%',height:420,timezone:'exchange',style:'1',hide_side_toolbar:true,allow_symbol_change:false})};
+  s.onerror=function(){box.textContent='TradingView could not be loaded.'};document.body.appendChild(s);this.disabled=true;
+};
+if(window.GrokkyPanel)GrokkyPanel.init({state:function(){return state},save:save});
+if(window.CallersPanel)CallersPanel.init({state:function(){return state},save:save});
+if(window.AskPanel)AskPanel.init();
+render();schedule();setInterval(tick,1000);tick();
+refresh().then(function(){window.__pulseReady=true;if(window.ContextPanel)window.ContextPanel.start();if(window.FlowTracker)window.FlowTracker.start();if(window.PulseIndicators)window.PulseIndicators.start();if(window.ChartPanel)window.ChartPanel.start()});
+if(window.KalshiPanel)window.KalshiPanel.start();
+window.__pulse={save:save,rerender:function(){render()},state:function(){return state},sources:S,engine:function(){return runEngine()}};
+})();
+</script>
+</body>
+</html>
