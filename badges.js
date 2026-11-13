@@ -53,5 +53,5 @@ function stats(id){return load().st[id]}
 function earnedAt(id,k){var e=load().earned[id];return e&&e[k]||null}
 function reset(){S=mk();save()}
 function suspend(b){suspended=!!b}
-window.PulseBadges={KEY:KEY,MINLEAD:MINLEAD,IDS:IDS,record:record,returned:returned,held:held,recompute:recompute,finish:finish,leader:leader,history:history,stats:stats,earnedAt:earnedAt,reset:reset,suspend:suspend,_state:function(){return load()},_drop:function(){S=null}};
+window.PulseBadges={KEY:KEY,MINLEAD:MINLEAD,IDS:IDS,record:record,returned:returned,held:held,recompute:recompute,finish:finish,leader:leader,history:history,stats:stats,earnedAt:earnedAt,reset:reset,suspend:suspend,_state:function(){return load()},swap:function(s){var p=S;S=s;return p},_drop:function(){S=null}};
 })();

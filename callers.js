@@ -34,7 +34,7 @@ PROFILES.flippy={id:'flippy',name:'Flippy',style:'late-flip gambler',tag:'I only
 PROFILES.chief={id:'chief',name:'The Chief',style:'overall status',tag:'I weigh in once, after the early calls',lens:'strike',blurb:'I’m the one who reads the room. At minute 7:30 I look at the latest call from Dash, Zippy, Mellow, Ripple and Sage, weigh each of them by how sure it sounds and how it has been doing lately, and give one overall call. If it’s too close to call, I say so.',col:'#ffd35e',K:4,shape:1,w:{}};
 var FEAT={trust:1,tod:1,news:1,gate:1,damp:1,bench:1};var REPLAY=false;
 var FLW={near:'distance to the strike',mom:'late momentum against the leader',acc:'acceleration',cvd:'buyers-vs-sellers swing (CVD / taker share)',book:'order-book shift',crowd:'Kalshi crowd price moving',hist:'how similar flip setups paid off before'};
-var H=null,ST=null,V1=null,LIVE=null,liveAt=0,_now=null,lastSave=0;
+var H=null,ST=null,V1=null,LIVE=null,liveAt=0,_now=null,lastSave=0,SWAPPED=false;
 function $(i){return document.getElementById(i)}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function num(x){var v=parseFloat(x);return isFinite(v)?v:NaN}
@@ -56,7 +56,7 @@ function ago(s){s=Math.max(0,s);return s<90?'moments':s<5400?Math.round(s/60)+' 
 function mkTot(id){var b=[];BEATS[id||'dash'].forEach(function(){b.push({n:0,w:0})});return {a:{n:0,w:0},b:b,g1:{n:0,w:0},g2:{n:0,w:0},sk:0,sit:{n:0,ok:0}}}
 function fresh(){var t={},m={};IDS.forEach(function(i){t[i]=mkTot(i);m[i]=[]});return {v:2,since:nowS(),rounds:{},tot:t,ps:{},mem:m,sig:{},cb:{},phase:{n:0,cur:null,cand:null,hist:[]},rk:{},cal:{},tod:{},bench:{},hl:[]}}
 function load(){if(ST)return ST;try{var s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&s.v===2&&s.rounds&&s.tot){var f=fresh();IDS.forEach(function(i){if(!s.tot[i])s.tot[i]=f.tot[i];if(!s.tot[i].sit)s.tot[i].sit={n:0,ok:0};if(!s.mem||!s.mem[i]){s.mem=s.mem||{};s.mem[i]=[]}});['ps','sig','cb','rk','cal','tod','bench'].forEach(function(k){if(!s[k])s[k]={}});if(!s.hl)s.hl=[];if(!s.phase)s.phase=f.phase;ST=s;return s}}catch(e){}ST=fresh();return ST}
-function save(force){if(REPLAY)return;var t=Date.now();if(!force&&t-lastSave<1500)return;lastSave=t;try{localStorage.setItem(KEY,JSON.stringify(ST))}catch(e){}}
+function save(force){if(REPLAY||SWAPPED)return;var t=Date.now();if(!force&&t-lastSave<1500)return;lastSave=t;try{localStorage.setItem(KEY,JSON.stringify(ST))}catch(e){}}
 function loadV1(){if(V1!==null)return V1;V1=false;try{var s=JSON.parse(localStorage.getItem(KEY1)||'null');if(s&&s.tot&&s.rounds)V1=s}catch(e){}return V1}
 function mkRound(W){var c={};IDS.forEach(function(i){c[i]=BEATS[i].map(function(){return null})});return {W:W,calls:c,miss:{},snaps:{},res:null,scored:false}}
 function round(W,mk){var s=load();if(!s.rounds[W]&&mk){s.rounds[W]=mkRound(W);var ks=Object.keys(s.rounds).map(Number).sort(function(a,b){return a-b});while(ks.length>(REPLAY?600:CAPR))delete s.rounds[ks.shift()]}return s.rounds[W]||null}
@@ -648,7 +648,8 @@ document.addEventListener('click',function(e){var t=e.target;if(!t.closest)retur
 document.addEventListener('change',function(e){var t=e.target;if(t&&t.getAttribute&&t.getAttribute('data-rp')){RP.on[t.getAttribute('data-rp')]=t.checked?1:0;update(true)}});
 
 /* compact for Ask AI: one short line per caller */
-function summary(){var s=load(),now=nowS(),cr=curRound(now),r=cr.r,P=s.phase.cur,o={phase:P?P.label+' since '+clock(P.start):null,gate:LIVE&&LIVE.gate?LIVE.gate.level:null,callers:[]},up=0,dn=0;
+function summary(){var sw=engSwap();try{return summaryInner()}finally{engRestore(sw)}}
+function summaryInner(){var s=load(),now=nowS(),cr=curRound(now),r=cr.r,P=s.phase.cur,o={phase:P?P.label+' since '+clock(P.start):null,gate:LIVE&&LIVE.gate?LIVE.gate.level:null,callers:[]},up=0,dn=0;
   IDS.forEach(function(id){var T=s.tot[id],c=lastCall(r,id),ps=s.ps[id]||{n:0,w:0};if(c&&c.dir){if(c.dir==='UP')up++;else dn++}
     o.callers.push({n:PROFILES[id].name,beats:BEATS[id].map(beatTxt).join('/'),last:c?(c.sit?'no flip seen ('+c.fconf+'/100)':c.nc?'no clear read':c.dir?c.dir+' c'+c.conf+(c.backs?' G'+c.backs:'')+(c.gate.lvl==='caution'?' ⚠':'')+(c.shadow?' bench':''):'skipped(fast)'):null,phase:ps.n?ps.w+'/'+ps.n:'-',all:T.a.n?T.a.w+'/'+T.a.n:'-'})});
   o.crowd=(up+dn)?up+' UP, '+dn+' DOWN so far':'no calls yet';
@@ -665,19 +666,26 @@ function reorder(){var ld=window.PulseBadges&&PulseBadges.leader();IDS.forEach(f
   if(lastOrder&&!UI.reduced()){els.forEach(function(el){var a=first[el.id],b=el.getBoundingClientRect(),dx=a.left-b.left,dy=a.top-b.top;if(!dx&&!dy)return;el.style.transition='none';el.style.transform='translate('+dx+'px,'+dy+'px)';
     requestAnimationFrame(function(){requestAnimationFrame(function(){el.style.transition='transform .7s cubic-bezier(.2,.8,.2,1)';el.style.transform='';setTimeout(function(){el.style.transition=''},800)})})})}
   lastOrder=key}
+/* engine view: while the always-on server engine is healthy, render ITS store/badges (read-only swap); the local pass keeps ticking and saving as backup */
+function engSwap(){var v=window.PulseServer&&PulseServer.view&&PulseServer.view();if(!v||REPLAY||!v.store)return null;var sv={ST:ST,B:null,hadB:false};
+  ST=v.store;SWAPPED=true;if(window.PulseBadges&&PulseBadges.swap&&v.badges){sv.B=PulseBadges.swap(v.badges);sv.hadB=true}return sv}
+function engRestore(sv){if(!sv)return;ST=sv.ST;SWAPPED=false;if(sv.hadB)PulseBadges.swap(sv.B)}
 function update(force){
   if(!H||!window.PulseIndicators)return;var now=nowS(),W=Math.floor(now/Q)*Q;
   try{tickMarks(now);scoreFromGrokky();var v=liveVec(W,now);if(v&&v.ok&&v.regime)detectPhase(v.regime,now);var g=gks()[W];if(g&&window.GrokkyArchive)GrokkyArchive.observeG(W,g.g1,g.g2)}catch(e){}
   var body=$('callersBody');if(!body)return;
+  var SW=engSwap();try{
   var nowEls=document.querySelectorAll('#callersCard .cnext');[].forEach.call(nowEls,function(e){e.textContent=mmss(+e.getAttribute('data-t')-now)});
   function put(id,h,fx){var el=$(id);if(!el)return;if(el._h!==h){el.innerHTML=h;el._h=h;UI.restore(el);if(fx){UI.countAll(el);UI.settleBars(el)}}}
-  put('newsBar',newsBar(now));put('statusBar',statusBar(now));put('callersTl',timeline(now));put('phaseBar',phaseBar(now),true);put('crowdBar',liveCrowd(now),true);
+  put('engineBar',window.PulseServer?PulseServer.bar():'');put('newsBar',newsBar(now));put('statusBar',statusBar(now));put('callersTl',timeline(now));put('phaseBar',phaseBar(now),true);put('crowdBar',liveCrowd(now),true);
   IDS.forEach(function(id){var el=$('caller-'+id);if(!el)return;var h=callerCard(id,now);if(el._h!==h){el.innerHTML=h;el._h=h;UI.restore(el);UI.countAll(el);UI.settleBars(el)}
     var cr=curRound(now),r=cr.r,c=lastCall(r,id),key=c?cr.W+':'+c.i:'';if(key&&el._k!==key){var first=el._k===undefined;el._k=key;if(!first){el.classList.add('reveal');setTimeout(function(){el.classList.remove('reveal')},1700)}}});
   reorder();put('callersScore',scoreTable(),true);put('callersExtra',leaderPanel()+calPanel()+todPanel(now)+benchPanel()+histPanel()+replayPanel());put('callersMarks',UI.xp('cmarks','Standing at the 4, 8 and 12-minute marks',marksTable(now)));put('callersArch',archiveView()+v1View(),true);
   var cb=$('cbBody');if(cb){var h3=checkBalance(now);if(cb._h!==h3){cb.innerHTML=h3;cb._h=h3;UI.restore(cb);UI.settleBars(cb)}}
+  }finally{engRestore(SW)}
 }
 document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('#phaseNew');if(!b)return;
+  if(window.PulseServer&&PulseServer.view&&PulseServer.view()){window.alert('The always-on engine is running the phases for you, so this button is paused while it is on. If the engine goes down, it comes back by itself.');return}
   if(window.confirm('Start a new market phase?\n\nThe callers’ longer-term (per-phase) stats reset. All-time totals, short memory and the Grokky Archive are not touched.')){newPhase('you started a new phase by hand',nowS());update(true)}});
 function init(host){H=host;load();loadV1();try{scoreFromGrokky()}catch(e){}update(true)}
 window.CallersPanel={init:init,update:update,onKalshi:onKalshi,latest:latest,summary:summary,fire:fire,decide:decide,confidence:confidence,tickMarks:tickMarks,scoreRound:scoreRound,detectPhase:detectPhase,newPhase:newPhase,
